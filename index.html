@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ナーチャリング共有ボード</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase_config.js"></script>
+<style>
+:root{
+  --pink:#F5A6C8; --pink-deep:#E07AAA; --pink-soft:#fbeef1; --pink-line:#f2cfdd;
+  --navy:#26405f; --navy-deep:#1d3149;
+  --blue:#8FC0EC; --blue-mid:#5f97be; --blue-soft:#f4f9fd; --blue-line:#cdd6e0;
+  --purple:#B98BEA; --purple-soft:#efe6fb;
+  --ink:#3a4657; --muted:#8a97a8; --ok:#5FA85A; --line:#e4ebf3;
+  --shadow:0 6px 22px rgba(38,64,95,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",sans-serif;
+  color:var(--ink);
+  background:linear-gradient(160deg,#f4f9fd 0%,#fbeef1 100%);
+  min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.6;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 80px}
+
+/* ---------- header ---------- */
+header{
+  background:linear-gradient(120deg,var(--navy) 0%,var(--blue-mid) 55%,var(--pink-deep) 130%);
+  border-radius:22px;padding:22px 24px;color:#fff;box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;
+  background:radial-gradient(circle,rgba(255,255,255,.22),transparent 70%);}
+.h-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.h-title{font-size:1.5rem;font-weight:800;letter-spacing:.02em;line-height:1.3}
+.h-title .edit{font-size:.72rem;opacity:.75;cursor:pointer;margin-left:8px;border:1px solid rgba(255,255,255,.4);
+  padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.h-sub{font-size:.82rem;opacity:.9;margin-top:6px}
+.who{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.16);
+  padding:6px 8px 6px 12px;border-radius:30px;font-size:.8rem}
+.who b{font-weight:700}
+.who button{border:none;background:#fff;color:var(--navy);font-weight:700;border-radius:20px;
+  padding:5px 12px;cursor:pointer;font-size:.78rem}
+
+/* ---------- progress bar ---------- */
+.progress{margin-top:16px;background:rgba(255,255,255,.22);border-radius:30px;height:16px;overflow:hidden;position:relative}
+.progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),#ffd36e);border-radius:30px;transition:width .5s}
+.progress span{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700}
+
+/* ---------- cards / sections ---------- */
+.section{background:#fff;border-radius:18px;padding:18px 18px 16px;margin-top:18px;box-shadow:var(--shadow)}
+.section > h2{font-size:1.02rem;color:var(--navy);display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.section > h2 .tag{font-size:.68rem;font-weight:600;background:var(--blue-soft);color:var(--blue-mid);
+  padding:2px 10px;border-radius:20px;border:1px solid var(--blue-line)}
+.section .desc{font-size:.78rem;color:var(--muted);margin-bottom:12px}
+
+/* ---------- two person todo ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.cols{grid-template-columns:1fr}}
+.col{border:1.5px solid var(--line);border-radius:16px;overflow:hidden;background:#fff}
+.col.kumiko{border-color:var(--pink-line)}
+.col.client{border-color:var(--blue-line)}
+.col-head{padding:11px 14px;font-weight:800;font-size:.92rem;display:flex;justify-content:space-between;align-items:center}
+.col.kumiko .col-head{background:var(--pink-soft);color:var(--pink-deep)}
+.col.client .col-head{background:var(--blue-soft);color:var(--blue-mid)}
+.col-head .cnt{font-size:.72rem;font-weight:700;background:#fff;border-radius:20px;padding:2px 10px}
+.mine-badge{font-size:.62rem;background:#fff;color:var(--navy);border-radius:20px;padding:1px 8px;margin-left:6px;border:1px solid currentColor}
+.tasklist{list-style:none;padding:8px;min-height:60px}
+.task{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:12px;margin-bottom:6px;
+  background:#fbfdff;border:1px solid var(--line);transition:.15s}
+.task:hover{border-color:var(--blue)}
+.task.done{opacity:.55;background:#f5f7f9}
+.task.done .t-title{text-decoration:line-through;color:var(--muted)}
+.check{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--blue);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#fff;background:#fff;transition:.15s;margin-top:1px}
+.col.kumiko .check{border-color:var(--pink-deep)}
+.task.done .check{background:var(--ok);border-color:var(--ok)}
+.task.doing .check{background:#ffc94d;border-color:#f0ab00}
+.t-body{flex:1;min-width:0}
+.t-title{font-size:.9rem;word-break:break-word;cursor:text}
+.t-memo{font-size:.75rem;color:var(--pink-deep);margin-top:4px;background:var(--pink-soft);
+  padding:5px 9px;border-radius:8px;display:inline-block;max-width:100%;word-break:break-word}
+.t-memo.empty{color:var(--muted);background:transparent;padding:0;cursor:pointer;font-size:.72rem}
+.t-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.t-actions button{font-size:.68rem;border:1px solid var(--line);background:#fff;color:var(--muted);
+  border-radius:16px;padding:3px 9px;cursor:pointer}
+.t-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
+.t-actions .del:hover{border-color:var(--pink-deep);color:var(--pink-deep)}
+.addrow{display:flex;gap:6px;padding:8px}
+.addrow input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.85rem;font-family:inherit}
+.addrow input:focus{outline:none;border-color:var(--blue)}
+.addrow button{border:none;border-radius:12px;padding:8px 14px;font-weight:700;font-size:.82rem;cursor:pointer;color:#fff}
+.col.kumiko .addrow button{background:var(--pink-deep)}
+.col.client .addrow button{background:var(--blue-mid)}
+
+/* ---------- stuck memos ---------- */
+.stuck-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.stuck-grid{grid-template-columns:1fr}}
+.stuck{border-radius:14px;padding:14px;border:1.5px dashed}
+.stuck.kumiko{background:var(--pink-soft);border-color:var(--pink)}
+.stuck.client{background:var(--blue-soft);border-color:var(--blue)}
+.stuck label{font-size:.8rem;font-weight:800;display:block;margin-bottom:7px}
+.stuck.kumiko label{color:var(--pink-deep)}
+.stuck.client label{color:var(--blue-mid)}
+.stuck textarea{width:100%;border:none;background:rgba(255,255,255,.7);border-radius:10px;padding:10px;
+  font-family:inherit;font-size:.85rem;resize:vertical;min-height:70px;color:var(--ink)}
+.stuck textarea:focus{outline:2px solid rgba(0,0,0,.06)}
+.stuck .saved{font-size:.68rem;color:var(--muted);margin-top:4px;height:14px}
+
+/* ---------- paste / topics ---------- */
+.paste-box{width:100%;border:1.5px solid var(--blue-line);border-radius:14px;padding:12px;font-family:inherit;
+  font-size:.88rem;min-height:90px;resize:vertical;background:var(--blue-soft)}
+.paste-box:focus{outline:none;border-color:var(--blue)}
+.paste-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.btn{border:none;border-radius:14px;padding:11px 20px;font-weight:800;font-size:.9rem;cursor:pointer;color:#fff;
+  background:linear-gradient(120deg,var(--purple),var(--pink-deep));box-shadow:0 4px 14px rgba(224,122,170,.35)}
+.btn:hover{filter:brightness(1.04)}
+.btn.ghost{background:#fff;color:var(--blue-mid);border:1.5px solid var(--blue-line);box-shadow:none}
+.hint{font-size:.74rem;color:var(--muted)}
+.topic-log{list-style:none;margin-top:6px;max-height:280px;overflow:auto}
+.topic-log li{padding:10px 12px;border-left:3px solid var(--purple);background:#faf8ff;border-radius:0 10px 10px 0;
+  margin-bottom:6px;font-size:.84rem;position:relative}
+.topic-log li .meta{font-size:.68rem;color:var(--muted);margin-top:3px;display:flex;justify-content:space-between}
+.topic-log li .tdel{cursor:pointer;color:var(--muted)}
+
+/* ---------- preview modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(29,49,73,.5);display:none;align-items:center;justify-content:center;
+  padding:16px;z-index:50}
+.overlay.on{display:flex}
+.modal{background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:22px;box-shadow:var(--shadow)}
+.modal h3{color:var(--navy);margin-bottom:4px}
+.modal .desc{font-size:.8rem;color:var(--muted);margin-bottom:14px}
+.pv-item{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;margin-bottom:7px}
+.pv-item.istopic{background:var(--purple-soft)}
+.pv-item input.pv-title{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.85rem;font-family:inherit}
+.pv-item select{border:1px solid var(--line);border-radius:8px;padding:7px;font-size:.8rem;font-family:inherit}
+.pv-item .rm{cursor:pointer;color:var(--muted);font-size:1.1rem;padding:0 4px}
+.pv-kind{font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.pv-kind.task{background:var(--pink-soft);color:var(--pink-deep)}
+.pv-kind.topic{background:var(--purple-soft);color:var(--purple)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+
+/* ---------- footer / status ---------- */
+.statusbar{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:22px;font-size:.75rem;color:var(--muted);flex-wrap:wrap}
+.dot{width:9px;height:9px;border-radius:50%;background:#c9d3df}
+.dot.ok{background:var(--ok)}.dot.err{background:var(--pink-deep)}
+.linkbtn{background:none;border:none;color:var(--blue-mid);cursor:pointer;text-decoration:underline;font-size:.75rem}
+.empty-note{text-align:center;color:var(--muted);font-size:.8rem;padding:14px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;
+  padding:12px 22px;border-radius:30px;font-size:.85rem;font-weight:600;opacity:0;pointer-events:none;transition:.3s;z-index:60;box-shadow:var(--shadow)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* diagnostics */
+.diag{font-size:.8rem;line-height:1.8}
+.diag div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:4px 0}
+.diag .g{color:var(--ok);font-weight:700}.diag .r{color:var(--pink-deep);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div class="h-top">
+      <div>
+        <div class="h-title"><span id="boardTitle">ナーチャリング共有ボード</span>
+          <span class="edit" onclick="editTitle()">✎ 名前変更</span></div>
+        <div class="h-sub">くみこ ⇄ <span id="clientLabelSub">クライアント</span>　やること・つまずき・議題をリアルタイムで共有</div>
+      </div>
+      <div class="who">これは<b id="whoName">？</b>の画面 <button onclick="switchRole()">切替</button></div>
+    </div>
+    <div class="progress"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
+  </header>
+
+  <!-- ===== 議題アップ ===== -->
+  <div class="section">
+    <h2>🗒 議題をアップ <span class="tag">貼るだけ / AI半自動仕分け</span></h2>
+    <div class="desc">コンサルで話したメモ・Slack・議事録テキストをそのまま貼って「仕分けする」を押すと、タスクと議題ログに自動で振り分けます。中身は次の画面で直せます。</div>
+    <textarea id="pasteBox" class="paste-box" placeholder="例）
+・くみこ → LT1の配信文を金曜までに送る
+・◯◯さんはリッチメニューの画像を用意
+今日決めたこと：初回配信は夜21時に固定
+つまずき：ステップ2の分岐条件がまだ曖昧"></textarea>
+    <div class="paste-actions">
+      <button class="btn" onclick="parseAndPreview()">✨ 仕分けする</button>
+      <button class="btn ghost" onclick="document.getElementById('pasteBox').value=''">クリア</button>
+      <span class="hint">もっと賢く仕分けたい時は、このメモをClaude Codeに貼って「ボードに入れて」でもOK</span>
+    </div>
+  </div>
+
+  <!-- ===== ToDo 2人分 ===== -->
+  <div class="section">
+    <h2>✅ やることリスト <span class="tag">終わったらチェック</span></h2>
+    <div class="desc">お互いの担当が丸見え。チェックで完了、⏳で「着手中」、メモでつまずきも残せます。</div>
+    <div class="cols">
+      <div class="col kumiko">
+        <div class="col-head"><span>💗 くみこ<span class="mine-badge" id="mineK" style="display:none">あなた</span></span><span class="cnt" id="cntK">0</span></div>
+        <ul class="tasklist" id="listK"></ul>
+        <div class="addrow">
+          <input id="addK" placeholder="くみこのタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('kumiko')">
+          <button onclick="quickAdd('kumiko')">＋</button>
+        </div>
+      </div>
+      <div class="col client">
+        <div class="col-head"><span>💙 <span class="clientLabel">クライアント</span><span class="mine-badge" id="mineC" style="display:none">あなた</span></span><span class="cnt" id="cntC">0</span></div>
+        <ul class="tasklist" id="listC"></ul>
+        <div class="addrow">
+          <input id="addC" placeholder="相手のタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('client')">
+          <button onclick="quickAdd('client')">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== つまずき ===== -->
+  <div class="section">
+    <h2>🚧 今つまずいていること <span class="tag">お互い見える</span></h2>
+    <div class="desc">「ここで止まってる」を書いておくと、相手が先回りで助けられます。自動保存。</div>
+    <div class="stuck-grid">
+      <div class="stuck kumiko">
+        <label>💗 くみこがつまずいてること</label>
+        <textarea id="stuckK" oninput="stuckDirty('kumiko')" placeholder="例）配信文のトーン、これで強すぎないか不安…"></textarea>
+        <div class="saved" id="savedK"></div>
+      </div>
+      <div class="stuck client">
+        <label>💙 <span class="clientLabel">クライアント</span>がつまずいてること</label>
+        <textarea id="stuckC" oninput="stuckDirty('client')" placeholder="例）Lステップの分岐設定がわからない…"></textarea>
+        <div class="saved" id="savedC"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 議題ログ ===== -->
+  <div class="section">
+    <h2>📚 議題ログ <span class="tag">話したこと・決めたこと</span></h2>
+    <div class="desc">仕分けで「議題」に振り分けた内容がここに時系列で溜まります。</div>
+    <ul class="topic-log" id="topicLog"></ul>
+    <div class="empty-note" id="topicEmpty">まだ議題ログはありません。上の「議題をアップ」から追加できます。</div>
+  </div>
+
+  <!-- ===== status ===== -->
+  <div class="statusbar">
+    <span class="dot" id="connDot"></span><span id="connTxt">接続確認中…</span>
+    <button class="linkbtn" onclick="loadAll(true)">↻ 今すぐ更新</button>
+    <button class="linkbtn" onclick="runDiag()">🩺 接続診断</button>
+    <span id="lastSync"></span>
+  </div>
+</div>
+
+<!-- ===== preview modal ===== -->
+<div class="overlay" id="pvOverlay">
+  <div class="modal">
+    <h3>✨ 仕分けプレビュー</h3>
+    <div class="desc">担当（くみこ / 相手）を確認して、いらない行は × で消してください。「議題」はログへ、「タスク」はToDoへ入ります。</div>
+    <div id="pvList"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closePreview()">キャンセル</button>
+      <button class="btn" onclick="commitPreview()">💾 ボードに登録</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== diagnostics modal ===== -->
+<div class="overlay" id="diagOverlay">
+  <div class="modal">
+    <h3>🩺 接続診断</h3>
+    <div class="desc">Supabaseとの接続・各テーブルの存在をチェックします。赤があったら schema.sql を貼り直してください。</div>
+    <div class="diag" id="diagBody">確認中…</div>
+    <div class="modal-actions"><button class="btn" onclick="closeEl('diagOverlay')">閉じる</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 初期化
+// ============================================================
+const BID = SUPABASE_CONFIG.boardId || 'client1';
+let sb = null;
+if (SUPABASE_CONFIG.enabled && window.supabase) {
+  sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+}
+let ROLE = localStorage.getItem('nurture_role'); // 'kumiko' | 'client'
+let META = { title:'ナーチャリング共有ボード', client_label:'クライアント' };
+let TASKS = [], TOPICS = [];
+let pvData = [];
+
+// ============================================================
+// 役割（自分はどっち？）
+// ============================================================
+function ensureRole(){
+  if (ROLE !== 'kumiko' && ROLE !== 'client'){
+    const ans = confirm('あなたはどちらですか？\n\n「OK」＝くみこ\n「キャンセル」＝' + META.client_label);
+    ROLE = ans ? 'kumiko' : 'client';
+    localStorage.setItem('nurture_role', ROLE);
+  }
+  paintRole();
+}
+function switchRole(){
+  ROLE = (ROLE === 'kumiko') ? 'client' : 'kumiko';
+  localStorage.setItem('nurture_role', ROLE);
+  paintRole();
+}
+function paintRole(){
+  document.getElementById('whoName').textContent = (ROLE==='kumiko') ? 'くみこ' : META.client_label;
+  document.getElementById('mineK').style.display = ROLE==='kumiko' ? '' : 'none';
+  document.getElementById('mineC').style.display = ROLE==='client' ? '' : 'none';
+}
+
+// ============================================================
+// メタ（タイトル・クライアント名）
+// ============================================================
+function applyMeta(){
+  document.getElementById('boardTitle').textContent = META.title || 'ナーチャリング共有ボード';
+  document.getElementById('clientLabelSub').textContent = META.client_label || 'クライアント';
+  document.querySelectorAll('.clientLabel').forEach(e=>e.textContent = META.client_label || 'クライアント');
+  document.title = META.title || 'ナーチャリング共有ボード';
+  paintRole();
+}
+async function editTitle(){
+  const t = prompt('ボードの名前は？', META.title);
+  if (t===null) return;
+  const c = prompt('相手（クライアント）の表示名は？', META.client_label);
+  if (c===null) return;
+  META.title = t.trim() || META.title;
+  META.client_label = c.trim() || META.client_label;
+  applyMeta();
+  if (sb){
+    await sb.from('nurture_meta').upsert({ board_id:BID, title:META.title, client_label:META.client_label, updated_at:new Date().toISOString() });
+    toast('ボード名を保存しました');
+  }
+}
+
+// ============================================================
+// データ読込
+// ============================================================
+async function loadAll(manual){
+  if(!sb){ setConn(false,'未接続：supabase_config.js を確認'); return; }
+  try{
+    const [m,t,tp,st] = await Promise.all([
+      sb.from('nurture_meta').select('*').eq('board_id',BID).maybeSingle(),
+      sb.from('nurture_tasks').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
+      sb.from('nurture_topics').select('*').eq('board_id',BID).order('created_at',{ascending:false}),
+      sb.from('nurture_stuck').select('*').eq('board_id',BID)
+    ]);
+    if(m.data){ META.title=m.data.title||META.title; META.client_label=m.data.client_label||META.client_label; }
+    applyMeta();
+    TASKS = t.data||[]; TOPICS = tp.data||[];
+    renderTasks(); renderTopics();
+    // stuck（自分が編集中の欄は上書きしない）
+    (st.data||[]).forEach(row=>{
+      const el = row.owner==='kumiko' ? document.getElementById('stuckK') : document.getElementById('stuckC');
+      if(el && document.activeElement!==el) el.value = row.content||'';
+    });
+    setConn(true,'接続OK');
+    const now=new Date();
+    document.getElementById('lastSync').textContent='最終更新 '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    if(manual) toast('最新の状態にしました');
+  }catch(e){
+    console.error(e); setConn(false,'読込エラー：'+(e.message||e));
+  }
+}
+
+// ============================================================
+// タスク描画
+// ============================================================
+function renderTasks(){
+  const lk=document.getElementById('listK'), lc=document.getElementById('listC');
+  lk.innerHTML=''; lc.innerHTML='';
+  const k=TASKS.filter(t=>t.owner==='kumiko'), c=TASKS.filter(t=>t.owner==='client');
+  document.getElementById('cntK').textContent = k.filter(t=>t.status==='done').length+'/'+k.length;
+  document.getElementById('cntC').textContent = c.filter(t=>t.status==='done').length+'/'+c.length;
+  if(!k.length) lk.innerHTML='<div class="empty-note">まだタスクなし</div>';
+  if(!c.length) lc.innerHTML='<div class="empty-note">まだタスクなし</div>';
+  k.forEach(t=>lk.appendChild(taskEl(t)));
+  c.forEach(t=>lc.appendChild(taskEl(t)));
+  // progress
+  const done=TASKS.filter(t=>t.status==='done').length;
+  const pct = TASKS.length ? Math.round(done/TASKS.length*100) : 0;
+  document.getElementById('progBar').style.width=pct+'%';
+  document.getElementById('progTxt').textContent = pct+'%（'+done+'/'+TASKS.length+'）';
+}
+function taskEl(t){
+  const li=document.createElement('li');
+  li.className='task '+(t.status==='done'?'done':t.status==='doing'?'doing':'');
+  const memoHtml = t.memo
+    ? '<div class="t-memo" onclick="editMemo(\''+t.id+'\')">🚧 '+esc(t.memo)+'</div>'
+    : '<div class="t-memo empty" onclick="editMemo(\''+t.id+'\')">＋つまずき・メモ</div>';
+  li.innerHTML =
+    '<div class="check" title="完了" onclick="toggleDone(\''+t.id+'\')">'+(t.status==='done'?'✓':t.status==='doing'?'⏳':'')+'</div>'+
+    '<div class="t-body">'+
+      '<div class="t-title" onclick="editTitleTask(\''+t.id+'\')">'+esc(t.title)+'</div>'+
+      memoHtml+
+      '<div class="t-actions">'+
+        '<button onclick="toggleDoing(\''+t.id+'\')">'+(t.status==='doing'?'着手中を解除':'⏳着手中')+'</button>'+
+        '<button onclick="moveOwner(\''+t.id+'\')">↔担当変更</button>'+
+        '<button class="del" onclick="delTask(\''+t.id+'\')">🗑</button>'+
+      '</div>'+
+    '</div>';
+  return li;
+}
+
+// ============================================================
+// タスク操作
+// ============================================================
+async function quickAdd(owner){
+  const el=document.getElementById(owner==='kumiko'?'addK':'addC');
+  const v=el.value.trim(); if(!v) return; el.value='';
+  await addTask(v,owner);
+}
+async function addTask(title,owner,memo){
+  if(!sb) return;
+  const row={board_id:BID,title:title,owner:owner,status:'todo',memo:memo||'',sort_order:Date.now()};
+  const {data,error}=await sb.from('nurture_tasks').insert(row).select().single();
+  if(error){toast('追加エラー');return;}
+  TASKS.push(data); renderTasks();
+}
+async function toggleDone(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  const done = t.status!=='done';
+  await patchTask(id,{status:done?'done':'todo', done_at:done?new Date().toISOString():null});
+  if(done) toast('お疲れさま！完了✨');
+}
+async function toggleDoing(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  await patchTask(id,{status:t.status==='doing'?'todo':'doing', done_at:null});
+}
+async function moveOwner(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  await patchTask(id,{owner:t.owner==='kumiko'?'client':'kumiko'});
+}
+async function editTitleTask(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  const v=prompt('タスクを編集',t.title); if(v===null)return;
+  if(!v.trim()) return;
+  await patchTask(id,{title:v.trim()});
+}
+async function editMemo(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  const v=prompt('つまずき・メモ（このタスク）',t.memo||''); if(v===null)return;
+  await patchTask(id,{memo:v.trim()});
+}
+async function delTask(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  if(!confirm('このタスクを削除しますか？\n「'+t.title+'」'))return;
+  const {error}=await sb.from('nurture_tasks').delete().eq('id',id);
+  if(error){toast('削除エラー');return;}
+  TASKS=TASKS.filter(x=>x.id!==id); renderTasks();
+}
+async function patchTask(id,patch){
+  if(!sb)return;
+  patch.updated_at=new Date().toISOString();
+  const {data,error}=await sb.from('nurture_tasks').update(patch).eq('id',id).select().single();
+  if(error){toast('更新エラー');return;}
+  const i=TASKS.findIndex(x=>x.id===id); if(i>=0)TASKS[i]=data; renderTasks();
+}
+
+// ============================================================
+// 議題ログ
+// ============================================================
+function renderTopics(){
+  const ul=document.getElementById('topicLog');
+  ul.innerHTML='';
+  document.getElementById('topicEmpty').style.display = TOPICS.length?'none':'block';
+  TOPICS.forEach(tp=>{
+    const li=document.createElement('li');
+    const d=new Date(tp.created_at);
+    const who = tp.author==='kumiko'?'くみこ':(META.client_label||'相手');
+    li.innerHTML='<div>'+esc(tp.content)+'</div>'+
+      '<div class="meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+'</span>'+
+      '<span class="tdel" onclick="delTopic(\''+tp.id+'\')">削除</span></div>';
+    ul.appendChild(li);
+  });
+}
+async function addTopic(content){
+  if(!sb)return;
+  const {data,error}=await sb.from('nurture_topics').insert({board_id:BID,content:content,author:ROLE}).select().single();
+  if(error)return;
+  TOPICS.unshift(data);
+}
+async function delTopic(id){
+  if(!confirm('この議題ログを削除しますか？'))return;
+  await sb.from('nurture_topics').delete().eq('id',id);
+  TOPICS=TOPICS.filter(x=>x.id!==id); renderTopics();
+}
+
+// ============================================================
+// つまずきメモ（人ごと・自動保存）
+// ============================================================
+let stuckTimers={};
+function stuckDirty(owner){
+  const el=document.getElementById(owner==='kumiko'?'stuckK':'stuckC');
+  const savedEl=document.getElementById(owner==='kumiko'?'savedK':'savedC');
+  savedEl.textContent='入力中…';
+  clearTimeout(stuckTimers[owner]);
+  stuckTimers[owner]=setTimeout(async()=>{
+    if(!sb){savedEl.textContent='';return;}
+    await sb.from('nurture_stuck').upsert({board_id:BID,owner:owner,content:el.value,updated_at:new Date().toISOString()},{onConflict:'board_id,owner'});
+    savedEl.textContent='✓ 保存しました';
+    setTimeout(()=>{savedEl.textContent='';},1800);
+  },700);
+}
+
+// ============================================================
+// 貼り付け → 仕分け（ヒューリスティック）
+// ============================================================
+const TASK_HINT=/(する|やる|作る|つくる|送る|送信|用意|準備|書く|考える|チェック|確認|設計|修正|対応|共有|連絡|提出|決める|まとめる|見直す|返信|作成|依頼|手配|予約|設定|アップ|投稿|撮る|募集|締め|〆|まで|TODO|ToDo|タスク|やること)/;
+const KUMIKO_HINT=/(くみこ|森川|もりくみ|私が|こちらで|弊社)/;
+const TOPIC_HINT=/(決めたこと|決定|方針|共有事項|議題|話したこと|メモ：|メモ:|前提|背景|所感)/;
+
+function splitClean(text){
+  return text.split(/\r?\n/).map(l=>l.replace(/^[\s　]*[-・*※◯○●▶▸►☐□✓✔①-⑳\d]+[\.\)、:：]?\s*/,'').replace(/^[\s　]+|[\s　]+$/g,'')).filter(Boolean);
+}
+function parseAndPreview(){
+  const raw=document.getElementById('pasteBox').value;
+  const lines=splitClean(raw);
+  if(!lines.length){toast('メモを貼ってから押してね');return;}
+  pvData = lines.map(l=>{
+    let owner=null, arrowClient=false;
+    // 「担当 → やること」形式
+    const arrow=l.match(/^(.{1,12}?)\s*(?:→|➡|=>|:|：)\s*(.+)$/);
+    let title=l;
+    if(arrow){
+      const head=arrow[1];
+      if(KUMIKO_HINT.test(head)) owner='kumiko';
+      else if(/さん|様|クライアント|相手|先方/.test(head) || (META.client_label && head.includes(META.client_label))) { owner='client'; arrowClient=true; }
+      // 議題っぽいヘッダーはタイトルだけにしない
+      if(owner) title=arrow[2].trim();
+    }
+    if(!owner){
+      if(KUMIKO_HINT.test(l)) owner='kumiko';
+      else if(/さん|様|先方|クライアント/.test(l) || (META.client_label && l.includes(META.client_label))) owner='client';
+    }
+    const isTopic = TOPIC_HINT.test(l) || (!TASK_HINT.test(l) && !arrow && !owner);
+    return { kind: isTopic?'topic':'task', title:title, owner: owner||'kumiko' };
+  });
+  renderPreview();
+  document.getElementById('pvOverlay').classList.add('on');
+}
+function renderPreview(){
+  const box=document.getElementById('pvList');
+  box.innerHTML='';
+  pvData.forEach((it,i)=>{
+    const row=document.createElement('div');
+    row.className='pv-item'+(it.kind==='topic'?' istopic':'');
+    row.innerHTML=
+      '<span class="pv-kind '+it.kind+'" onclick="pvToggleKind('+i+')" title="クリックでタスク⇄議題">'+(it.kind==='task'?'タスク':'議題')+'</span>'+
+      '<input class="pv-title" value="'+esc(it.title).replace(/"/g,'&quot;')+'" oninput="pvData['+i+'].title=this.value">'+
+      (it.kind==='task'
+        ? '<select onchange="pvData['+i+'].owner=this.value"><option value="kumiko"'+(it.owner==='kumiko'?' selected':'')+'>💗くみこ</option><option value="client"'+(it.owner==='client'?' selected':'')+'>💙'+esc(META.client_label)+'</option></select>'
+        : '')+
+      '<span class="rm" onclick="pvRemove('+i+')">×</span>';
+    box.appendChild(row);
+  });
+  if(!pvData.length) box.innerHTML='<div class="empty-note">仕分ける行がありません</div>';
+}
+function pvToggleKind(i){ pvData[i].kind = pvData[i].kind==='task'?'topic':'task'; renderPreview(); }
+function pvRemove(i){ pvData.splice(i,1); renderPreview(); }
+function closePreview(){ document.getElementById('pvOverlay').classList.remove('on'); }
+async function commitPreview(){
+  if(!sb){toast('未接続');return;}
+  let nt=0,ng=0;
+  for(const it of pvData){
+    if(!it.title.trim()) continue;
+    if(it.kind==='task'){ await addTask(it.title.trim(), it.owner); nt++; }
+    else { await addTopic(it.title.trim()); ng++; }
+  }
+  renderTasks(); renderTopics();
+  closePreview();
+  document.getElementById('pasteBox').value='';
+  toast('登録完了：タスク'+nt+'件 / 議題'+ng+'件');
+}
+
+// ============================================================
+// 診断
+// ============================================================
+async function runDiag(){
+  document.getElementById('diagOverlay').classList.add('on');
+  const body=document.getElementById('diagBody');
+  if(!sb){ body.innerHTML='<div><span>Supabase接続</span><span class="r">✕ 未設定</span></div>'; return; }
+  body.innerHTML='確認中…';
+  const rows=[];
+  rows.push(await checkTable('nurture_tasks'));
+  rows.push(await checkTable('nurture_topics'));
+  rows.push(await checkTable('nurture_stuck'));
+  rows.push(await checkTable('nurture_meta'));
+  body.innerHTML = '<div><span>Supabase URL</span><span class="g">'+SUPABASE_CONFIG.url.replace('https://','')+'</span></div>'+
+    '<div><span>ボードID</span><span class="g">'+BID+'</span></div>'+ rows.join('');
+}
+async function checkTable(name){
+  try{
+    const {error}=await sb.from(name).select('*',{count:'exact',head:true}).eq('board_id',BID);
+    if(error) return '<div><span>'+name+'</span><span class="r">✕ '+esc(error.message)+'</span></div>';
+    return '<div><span>'+name+'</span><span class="g">✓ OK</span></div>';
+  }catch(e){ return '<div><span>'+name+'</span><span class="r">✕ '+esc(e.message||e)+'</span></div>'; }
+}
+
+// ============================================================
+// util
+// ============================================================
+function setConn(ok,txt){
+  const d=document.getElementById('connDot');
+  d.className='dot '+(ok?'ok':'err');
+  document.getElementById('connTxt').textContent=txt;
+}
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),2200);
+}
+function closeEl(id){ document.getElementById(id).classList.remove('on'); }
+
+// ============================================================
+// 起動
+// ============================================================
+(async function init(){
+  if(!sb){ setConn(false,'supabase_config.js が未設定'); ensureRole(); return; }
+  await loadAll();
+  ensureRole();
+  // ポーリング同期（5秒ごと・入力中は邪魔しない設計）
+  setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 5000);
+  window.addEventListener('focus',()=>loadAll());
+})();
+</script>
+</body>
+</html>
