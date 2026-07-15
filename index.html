@@ -24,6 +24,25 @@ body{
 }
 .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 80px}
 
+/* ---------- auth gate ---------- */
+.authgate{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#f4f9fd,#fbeef1);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.authgate.hide{display:none}
+.authcard{background:#fff;border-radius:24px;box-shadow:0 12px 40px rgba(38,64,95,.16);
+  max-width:400px;width:100%;padding:34px 28px;text-align:center}
+.authlock{font-size:2.4rem;margin-bottom:6px}
+.authsent{font-size:2.6rem;margin-bottom:10px}
+.authcard h2{color:#26405f;font-size:1.2rem;margin-bottom:12px}
+.authlead{font-size:.86rem;color:#5a6577;margin-bottom:16px;line-height:1.7}
+.authcard input{width:100%;border:1.5px solid #cdd6e0;border-radius:12px;padding:13px 15px;
+  font-size:1rem;font-family:inherit;margin-bottom:12px;text-align:center}
+.authcard input:focus{outline:none;border-color:#F5A6C8}
+.authbtn{width:100%;justify-content:center}
+.authmsg{font-size:.8rem;margin-top:12px;min-height:18px}
+.authmsg.err{color:#E07AAA;font-weight:700}
+.authmsg.ok{color:#5FA85A;font-weight:700}
+.logoutbtn{background:none;border:none;color:#8a97a8;cursor:pointer;text-decoration:underline;font-size:.75rem}
+
 /* ---------- header ---------- */
 header{
   background:linear-gradient(120deg,var(--navy) 0%,var(--blue-mid) 55%,var(--pink-deep) 130%);
@@ -170,6 +189,28 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 </style>
 </head>
 <body>
+
+<!-- ===== ログインゲート（許可アドレスのみ） ===== -->
+<div id="authGate" class="authgate">
+  <div class="authcard">
+    <div class="authlock">🔒</div>
+    <h2>ナーチャリング共有ボード</h2>
+    <p class="authlead">許可されたメールアドレスの方だけがご覧いただけます。<br>ご自分のメールアドレスを入れてください。</p>
+    <div id="authStep1">
+      <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"
+        onkeydown="if(event.key==='Enter')sendMagic()">
+      <button class="btn authbtn" id="authSendBtn" onclick="sendMagic()">✉️ ログイン用リンクを送る</button>
+    </div>
+    <div id="authStep2" style="display:none">
+      <div class="authsent">✉️</div>
+      <p class="authlead"><b id="sentTo"></b> に<br><b>ログイン用リンク</b>を送りました。</p>
+      <p class="authlead">メールを開いて<b>リンクをタップ</b>すると入れます。<br><span class="hint">※同じブラウザで開くとスムーズ。届かない時は迷惑メールも確認してね</span></p>
+      <button class="btn ghost" onclick="resetAuth()">← やり直す</button>
+    </div>
+    <div id="authMsg" class="authmsg"></div>
+  </div>
+</div>
+
 <div class="wrap">
 
   <!-- ===== HEADER ===== -->
@@ -257,6 +298,8 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
     <button class="linkbtn" onclick="loadAll(true)">↻ 今すぐ更新</button>
     <button class="linkbtn" onclick="runDiag()">🩺 接続診断</button>
     <span id="lastSync"></span>
+    <span id="authUser"></span>
+    <button class="logoutbtn" onclick="logout()">ログアウト</button>
   </div>
 </div>
 
@@ -666,15 +709,70 @@ function toast(msg){
 function closeEl(id){ document.getElementById(id).classList.remove('on'); }
 
 // ============================================================
+// 認証（許可アドレスのみ・メールリンクログイン）
+// ============================================================
+const ALLOW = ['4morikawa5@gmail.com','k.morikawa@merone.jp','anchidaietrieyoshida@gmail.com'];
+let boardStarted = false;
+
+function authMsg(text,type){
+  const el=document.getElementById('authMsg');
+  el.textContent=text||''; el.className='authmsg'+(type?' '+type:'');
+}
+function showGate(){ document.getElementById('authGate').classList.remove('hide'); }
+function hideGate(){ document.getElementById('authGate').classList.add('hide'); }
+function resetAuth(){
+  document.getElementById('authStep1').style.display='';
+  document.getElementById('authStep2').style.display='none';
+  authMsg('');
+}
+async function sendMagic(){
+  const email=(document.getElementById('authEmail').value||'').trim().toLowerCase();
+  if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ authMsg('メールアドレスを正しく入れてね','err'); return; }
+  if(!ALLOW.includes(email)){ authMsg('このアドレスは許可リストにありません。くみこに連絡してね🙏','err'); return; }
+  const btn=document.getElementById('authSendBtn'); btn.disabled=true; btn.textContent='送信中…';
+  const {error}=await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
+  btn.disabled=false; btn.textContent='✉️ ログイン用リンクを送る';
+  if(error){ authMsg('送信エラー：'+error.message,'err'); return; }
+  document.getElementById('sentTo').textContent=email;
+  document.getElementById('authStep1').style.display='none';
+  document.getElementById('authStep2').style.display='';
+  authMsg('');
+}
+async function evalSession(session){
+  if(session && session.user){
+    const email=(session.user.email||'').toLowerCase();
+    if(!ALLOW.includes(email)){
+      await sb.auth.signOut(); showGate(); resetAuth();
+      authMsg('このアドレスには閲覧権限がありません','err'); return false;
+    }
+    document.getElementById('authUser').textContent='👤 '+email+' ';
+    hideGate();
+    startBoard();
+    return true;
+  }
+  showGate();
+  return false;
+}
+async function logout(){
+  if(sb) await sb.auth.signOut();
+  location.reload();
+}
+function startBoard(){
+  if(boardStarted) return; boardStarted=true;
+  loadAll().then(()=>ensureRole());
+  setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 5000);
+  window.addEventListener('focus',()=>{ if(boardStarted) loadAll(); });
+}
+
+// ============================================================
 // 起動
 // ============================================================
 (async function init(){
-  if(!sb){ setConn(false,'supabase_config.js が未設定'); ensureRole(); return; }
-  await loadAll();
-  ensureRole();
-  // ポーリング同期（5秒ごと・入力中は邪魔しない設計）
-  setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 5000);
-  window.addEventListener('focus',()=>loadAll());
+  if(!sb){ hideGate(); setConn(false,'supabase_config.js が未設定'); ensureRole(); return; }
+  // メールリンクから戻ってきた時＆通常ログインを検知
+  sb.auth.onAuthStateChange((_event, session)=>{ evalSession(session); });
+  const { data:{ session } } = await sb.auth.getSession();
+  await evalSession(session);
 })();
 </script>
 </body>

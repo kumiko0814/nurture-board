@@ -22,42 +22,60 @@ pre{background:var(--navy);color:#dfeaf5;border-radius:12px;padding:14px;overflo
 .done-box{background:linear-gradient(120deg,#eafbea,#f0fff0);border:1.5px solid #5FA85A;border-radius:16px;padding:18px;text-align:center;margin-top:10px}
 .done-box a{display:inline-block;margin-top:10px;background:linear-gradient(120deg,var(--purple),var(--pink-deep));color:#fff;text-decoration:none;padding:12px 28px;border-radius:30px;font-weight:800}
 .note{font-size:.8rem;color:var(--muted);background:#fff8fb;border-left:3px solid var(--pink);padding:8px 12px;border-radius:0 8px 8px 0;margin-top:8px}
+.allowbox{background:#fff;border:1.5px solid #B5D04E;border-left:4px solid #5FA85A;border-radius:12px;padding:14px 16px;font-size:.85rem;margin-bottom:16px;line-height:1.9}
+.allowbox code{font-size:.78rem}
+.fnote{font-size:.75rem;color:var(--muted)}
+.copybtn.small{padding:5px 12px;font-size:.78rem}
+.urlrow{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-top:10px;font-size:.85rem}
+pre.mini{padding:10px 12px;font-size:.8rem;max-height:none;margin:6px 0}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>🗒 ナーチャリング共有ボード</h1>
-  <p class="lead">準備は<b>1回だけ・SQLを貼るだけ</b>。5分で終わります（既存のSupabaseを再利用）</p>
+  <h1>🔒 ナーチャリング共有ボード（許可アドレス限定版）</h1>
+  <p class="lead">準備は<b>2ステップだけ</b>。許可した3アドレスの人しか見れない鍵付きにします</p>
 
-  <div class="step">
-    <h2><span class="num">1</span>Supabaseを開く</h2>
-    <p><a class="link" href="https://supabase.com/dashboard/project/inrvprlyobghviklulcv/sql/new" target="_blank">▶ このリンクでSQLエディタを開く</a>（Re:alizeと同じプロジェクト）</p>
-    <p class="note">ログインを求められたら、いつものアカウントで入ってね。開けなかったら supabase.com → Re:alizeのプロジェクト → 左メニュー「SQL Editor」。</p>
+  <div class="allowbox">
+    ✅ 見れるのはこの3アドレスだけ：<br>
+    <code>4morikawa5@gmail.com</code> ／ <code>k.morikawa@merone.jp</code> ／ <code>anchidaietrieyoshida@gmail.com</code><br>
+    <span class="fnote">増減したい時は、下のSQLの ARRAY[...] を編集して再RUNするだけ。</span>
   </div>
 
   <div class="step">
-    <h2><span class="num">2</span>下のSQLを丸ごとコピペして「RUN」</h2>
-    <p>コピーボタン → SQLエディタに貼り付け → 右下の緑の <code>RUN</code> ボタン。<br>「Success」と出たらOK。<b>既存のRe:alizeのデータには一切触りません。</b></p>
+    <h2><span class="num">1</span>テーブルを作る（SQLを貼ってRUN）</h2>
+    <p><a class="link" href="https://supabase.com/dashboard/project/inrvprlyobghviklulcv/sql/new" target="_blank">▶ SQLエディタを開く</a> → 下のボタンでコピー → 貼り付け → 右下の緑 <code>RUN</code>。<br>「Success」でOK。<b>Re:alizeのデータには一切触りません。</b></p>
     <button class="copybtn" onclick="copySql()">📋 SQLをコピー</button>
     <pre id="sql">-- 読み込み中…</pre>
   </div>
 
   <div class="step">
+    <h2><span class="num">2</span>ログインリンクの戻り先を登録する（重要）</h2>
+    <p>メールのログインリンクを押した後に、正しくボードに戻ってくるための設定です。</p>
+    <p><a class="link" href="https://supabase.com/dashboard/project/inrvprlyobghviklulcv/auth/url-configuration" target="_blank">▶ Authentication → URL Configuration を開く</a></p>
+    <p>2か所に、このURLを入れて「Save」：</p>
+    <div class="urlrow"><b>Site URL</b><button class="copybtn small" onclick="copyUrl('https://kumiko0814.github.io/nurture-board/')">コピー</button></div>
+    <pre class="mini">https://kumiko0814.github.io/nurture-board/</pre>
+    <div class="urlrow"><b>Redirect URLs</b>（「Add URL」で追加）<button class="copybtn small" onclick="copyUrl('https://kumiko0814.github.io/nurture-board/**')">コピー</button></div>
+    <pre class="mini">https://kumiko0814.github.io/nurture-board/**</pre>
+    <p class="note">これをやらないと、メールのリンクを押しても localhost に飛んでログインできません。1回だけでOK。</p>
+  </div>
+
+  <div class="step">
     <h2><span class="num">3</span>ボードを開く</h2>
     <div class="done-box">
-      準備完了！このリンクをブックマーク＆相手にも共有してください👇<br>
+      準備完了！このリンクをブックマーク＆相手にも共有👇<br>
       <a href="index.html">💗 共有ボードを開く 💙</a>
-      <p class="note" style="margin-top:14px">相手（クライアント）にも同じURLを送るだけ。初回に「あなたはどっち？」と聞かれるので、相手は「キャンセル（＝クライアント）」を選べばOK。右上の「切替」でいつでも変えられます。</p>
+      <p class="note" style="margin-top:14px">開くとログイン画面が出ます。自分のメールアドレスを入れる → 届いたリンクをタップ → 入れます。<br>相手（吉田さん）にも同じURLを送るだけ。相手は <code>anchidaietrieyoshida@gmail.com</code> でログインできます。</p>
     </div>
   </div>
 
   <p style="text-align:center;color:var(--muted);font-size:.8rem;margin-top:20px">
-    困ったらボード右下の「🩺 接続診断」を押すと、どこで詰まってるか教えてくれます。
+    困ったらボード右下の「🩺 接続診断」。ログインが上手くいかない時は STEP2 の登録を見直してね。
   </p>
 </div>
 <script>
-// schema.sql を読み込んで表示（fetchできない環境向けに内蔵もしておく）
-const SQL_TEXT = `-- ナーチャリング共有ボード テーブル定義（SQL Editor に丸ごと貼って RUN）
+// 認証必須RLS版のSQL（許可アドレスの人だけ読み書き可）
+const SQL_TEXT = `-- ナーチャリング共有ボード（認証必須・許可アドレス限定）
 CREATE TABLE IF NOT EXISTS nurture_tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   board_id TEXT NOT NULL DEFAULT 'client1',
@@ -95,7 +113,9 @@ ALTER TABLE nurture_topics ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nurture_stuck ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nurture_meta ENABLE ROW LEVEL SECURITY;
 DO $$
-DECLARE t TEXT;
+DECLARE
+  t TEXT;
+  emails TEXT := '''4morikawa5@gmail.com'',''k.morikawa@merone.jp'',''anchidaietrieyoshida@gmail.com''';
 BEGIN
   FOREACH t IN ARRAY ARRAY['nurture_tasks','nurture_topics','nurture_stuck','nurture_meta']
   LOOP
@@ -103,10 +123,12 @@ BEGIN
     EXECUTE format('DROP POLICY IF EXISTS "anon_insert" ON %I;', t);
     EXECUTE format('DROP POLICY IF EXISTS "anon_update" ON %I;', t);
     EXECUTE format('DROP POLICY IF EXISTS "anon_delete" ON %I;', t);
-    EXECUTE format('CREATE POLICY "anon_select" ON %I FOR SELECT TO anon USING (true);', t);
-    EXECUTE format('CREATE POLICY "anon_insert" ON %I FOR INSERT TO anon WITH CHECK (true);', t);
-    EXECUTE format('CREATE POLICY "anon_update" ON %I FOR UPDATE TO anon USING (true);', t);
-    EXECUTE format('CREATE POLICY "anon_delete" ON %I FOR DELETE TO anon USING (true);', t);
+    EXECUTE format('DROP POLICY IF EXISTS "allow_members" ON %I;', t);
+    EXECUTE format(
+      'CREATE POLICY "allow_members" ON %I FOR ALL TO authenticated '
+      || 'USING ((auth.jwt() ->> ''email'') IN (%s)) '
+      || 'WITH CHECK ((auth.jwt() ->> ''email'') IN (%s));',
+      t, emails, emails);
   END LOOP;
 END $$;
 INSERT INTO nurture_meta (board_id, title, client_label)
@@ -115,10 +137,13 @@ ON CONFLICT (board_id) DO NOTHING;`;
 document.getElementById('sql').textContent = SQL_TEXT;
 function copySql(){
   navigator.clipboard.writeText(SQL_TEXT).then(()=>{
-    const b=document.querySelector('.copybtn'); b.textContent='✓ コピーしました！';
+    const b=document.querySelectorAll('.copybtn')[0]; b.textContent='✓ コピーしました！';
     setTimeout(()=>b.textContent='📋 SQLをコピー',1800);
   });
 }
+function copyUrl(u){ navigator.clipboard.writeText(u).then(()=>{
+  event.target.textContent='✓'; setTimeout(()=>event.target.textContent='コピー',1500);
+});}
 </script>
 </body>
 </html>
