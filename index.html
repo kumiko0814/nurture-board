@@ -310,6 +310,7 @@ details.rec .rec-body{padding:0 18px 18px}
 <div id="authGate" class="authgate">
   <div class="authcard">
     <h2>ナーチャリング共有ボード</h2>
+    <div id="gateBoard" style="font-weight:800;color:#26405f;font-size:.92rem;margin-bottom:10px"></div>
     <p class="authlead">許可されたメールアドレスの方のみご利用いただけます。<br>ご登録のメールアドレスをご入力ください。</p>
     <div id="authStep1">
       <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"
@@ -546,6 +547,8 @@ details.rec .rec-body{padding:0 18px 18px}
 // 初期化
 // ============================================================
 const BID = SUPABASE_CONFIG.boardId || 'client1';
+const BOARD_NAMES = { riet:'リエット', famm:'Famm', abcash:'ABCash', client1:'デモ' };
+(function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent='「'+(BOARD_NAMES[BID]||BID)+'」専用ボード'; })();
 let sb = null;
 if (SUPABASE_CONFIG.enabled && window.supabase) {
   sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
@@ -1140,6 +1143,7 @@ async function runDiag(){
   rows.push(await checkTable('nurture_issues'));
   rows.push(await checkTable('nurture_deliverables'));
   rows.push(await checkTable('nurture_exec_notes'));
+  rows.push(await checkTable('nurture_access'));
   body.innerHTML = '<div><span>Supabase URL</span><span class="g">'+SUPABASE_CONFIG.url.replace('https://','')+'</span></div>'+
     '<div><span>ボードID</span><span class="g">'+BID+'</span></div>'+ rows.join('');
 }
@@ -1169,7 +1173,7 @@ function closeEl(id){ document.getElementById(id).classList.remove('on'); }
 // ============================================================
 // 認証（許可アドレスのみ・メールリンクログイン）
 // ============================================================
-const ALLOW = ['4morikawa5@gmail.com','k.morikawa@merone.jp','anchidaietrieyoshida@gmail.com'];
+// アクセス可否は Supabase の nurture_access（ボード別許可リスト）で判定する
 let boardStarted = false;
 
 function authMsg(text,type){
@@ -1186,7 +1190,6 @@ function resetAuth(){
 async function sendMagic(){
   const email=(document.getElementById('authEmail').value||'').trim().toLowerCase();
   if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ authMsg('メールアドレスを正しくご入力ください','err'); return; }
-  if(!ALLOW.includes(email)){ authMsg('このアドレスは許可リストに登録されていません。管理者にお問い合わせください。','err'); return; }
   const btn=document.getElementById('authSendBtn'); btn.disabled=true; btn.textContent='送信中…';
   const {error}=await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
   btn.disabled=false; btn.textContent='ログイン用リンクを送信';
@@ -1199,9 +1202,14 @@ async function sendMagic(){
 async function evalSession(session){
   if(session && session.user){
     const email=(session.user.email||'').toLowerCase();
-    if(!ALLOW.includes(email)){
+    let ok=false;
+    try{
+      const {data}=await sb.from('nurture_access').select('board_id').eq('board_id',BID).eq('email',email).maybeSingle();
+      ok=!!data;
+    }catch(e){ ok=false; }
+    if(!ok){
       await sb.auth.signOut(); showGate(); resetAuth();
-      authMsg('このアドレスには閲覧権限がありません','err'); return false;
+      authMsg('このボードへのアクセス権限がありません。担当者にご確認ください。','err'); return false;
     }
     document.getElementById('authUser').textContent=email+'　';
     hideGate();

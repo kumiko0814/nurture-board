@@ -107,6 +107,16 @@ CREATE TABLE IF NOT EXISTS nurture_exec_notes (
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 9. アクセス管理（ボードごとに「入れる人」を限定＝クライアント別に分離）
+--    board_id ごとに許可メールを登録。Fammの人はFammだけ、リエットの人はリエットだけ見える。
+CREATE TABLE IF NOT EXISTS nurture_access (
+  board_id   TEXT NOT NULL,
+  email      TEXT NOT NULL,
+  role_hint  TEXT DEFAULT '',      -- kumiko / client / executive の目安
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (board_id, email)
+);
+
 -- ------------------------------------------------------------
 -- RLS：許可アドレスでログインした人だけ CRUD 可（anonは全拒否）
 -- 許可アドレスを増減したい時は、下の ARRAY[...] の中身を編集して再RUN
@@ -119,32 +129,51 @@ ALTER TABLE nurture_directives   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nurture_issues       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nurture_deliverables ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nurture_exec_notes   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nurture_access       ENABLE ROW LEVEL SECURITY;
 
+-- 認証ユーザーは「自分のメールの行」だけ読める（自分がどのボードに入れるか確認用）
+DROP POLICY IF EXISTS "access_self" ON nurture_access;
+CREATE POLICY "access_self" ON nurture_access FOR SELECT TO authenticated
+  USING (email = lower(auth.jwt() ->> 'email'));
+
+-- 各テーブル：ログインメールが「そのボードのアクセス管理に登録されている」場合のみ全操作OK
 DO $$
-DECLARE
-  t TEXT;
-  emails TEXT := '''4morikawa5@gmail.com'',''k.morikawa@merone.jp'',''anchidaietrieyoshida@gmail.com''';
+DECLARE t TEXT;
 BEGIN
   FOREACH t IN ARRAY ARRAY['nurture_tasks','nurture_topics','nurture_stuck','nurture_meta','nurture_directives','nurture_issues','nurture_deliverables','nurture_exec_notes']
   LOOP
-    -- 旧anonポリシーを削除（前の公開版から作り替えるため）
     EXECUTE format('DROP POLICY IF EXISTS "anon_select" ON %I;', t);
     EXECUTE format('DROP POLICY IF EXISTS "anon_insert" ON %I;', t);
     EXECUTE format('DROP POLICY IF EXISTS "anon_update" ON %I;', t);
     EXECUTE format('DROP POLICY IF EXISTS "anon_delete" ON %I;', t);
     EXECUTE format('DROP POLICY IF EXISTS "allow_members" ON %I;', t);
-    -- 許可アドレスでログイン済みの人だけ 全操作OK
     EXECUTE format(
       'CREATE POLICY "allow_members" ON %I FOR ALL TO authenticated '
-      || 'USING ((auth.jwt() ->> ''email'') IN (%s)) '
-      || 'WITH CHECK ((auth.jwt() ->> ''email'') IN (%s));',
-      t, emails, emails);
+      || 'USING (EXISTS (SELECT 1 FROM nurture_access a WHERE a.board_id = %I.board_id AND a.email = lower(auth.jwt() ->> ''email''))) '
+      || 'WITH CHECK (EXISTS (SELECT 1 FROM nurture_access a WHERE a.board_id = %I.board_id AND a.email = lower(auth.jwt() ->> ''email'')));',
+      t, t, t);
   END LOOP;
 END $$;
 
--- 初期メタ行
-INSERT INTO nurture_meta (board_id, title, client_label)
-VALUES ('client1', 'ナーチャリング共有ボード', 'クライアント')
+-- ボード別アクセス（くみこは全ボード／吉田さんはリエットのみ。Famm・ABCashのクライアント担当は後で追加）
+INSERT INTO nurture_access (board_id, email, role_hint) VALUES
+  ('client1','4morikawa5@gmail.com','kumiko'),
+  ('client1','k.morikawa@merone.jp','kumiko'),
+  ('riet','4morikawa5@gmail.com','kumiko'),
+  ('riet','k.morikawa@merone.jp','kumiko'),
+  ('riet','anchidaietrieyoshida@gmail.com','client'),
+  ('famm','4morikawa5@gmail.com','kumiko'),
+  ('famm','k.morikawa@merone.jp','kumiko'),
+  ('abcash','4morikawa5@gmail.com','kumiko'),
+  ('abcash','k.morikawa@merone.jp','kumiko')
+ON CONFLICT (board_id, email) DO NOTHING;
+
+-- 各ボードの初期メタ（表示名）
+INSERT INTO nurture_meta (board_id, title, client_label) VALUES
+  ('client1','ナーチャリング共有ボード','クライアント'),
+  ('riet','リエット ナーチャリング進行ボード','リエット'),
+  ('famm','Famm ナーチャリング進行ボード','Famm'),
+  ('abcash','ABCash ナーチャリング進行ボード','ABCash')
 ON CONFLICT (board_id) DO NOTHING;
 
 -- 完了！ このあと Auth の URL 設定（setup.html の STEP参照）をして index.html を開く

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ナーチャリング共有ボード｜ボード一覧</title>
+<style>
+:root{--pink:#F5A6C8;--pink-deep:#E07AAA;--navy:#26405f;--blue:#8FC0EC;--blue-mid:#5f97be;--purple:#B98BEA;--ink:#3a4657;--muted:#8a97a8;--line:#e4ebf3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Hiragino Sans","Yu Gothic",sans-serif;color:var(--ink);background:linear-gradient(160deg,#f4f9fd,#fbeef1);min-height:100vh;padding:40px 16px 80px}
+.wrap{max-width:720px;margin:0 auto}
+.head{background:linear-gradient(120deg,var(--navy),var(--blue-mid) 60%,var(--pink-deep) 130%);color:#fff;border-radius:22px;padding:26px 24px;box-shadow:0 8px 30px rgba(38,64,95,.14)}
+.head h1{font-size:1.35rem;font-weight:800}
+.head p{font-size:.85rem;opacity:.9;margin-top:6px}
+.grid{margin-top:22px;display:grid;gap:14px}
+.card{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px;text-decoration:none;color:inherit;box-shadow:0 6px 22px rgba(38,64,95,.08);transition:.15s}
+.card:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(38,64,95,.14);border-color:var(--blue)}
+.card .l{display:flex;align-items:center;gap:16px}
+.badge{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.05rem;color:#fff;flex:0 0 auto}
+.badge.riet{background:linear-gradient(135deg,var(--purple),var(--pink-deep))}
+.badge.famm{background:linear-gradient(135deg,var(--blue),var(--blue-mid))}
+.badge.abcash{background:linear-gradient(135deg,var(--navy),var(--blue-mid))}
+.card .name{font-size:1.05rem;font-weight:800;color:var(--navy)}
+.card .sub{font-size:.78rem;color:var(--muted);margin-top:3px}
+.card .go{font-size:.8rem;font-weight:700;color:var(--blue-mid);white-space:nowrap}
+.card .status{font-size:.66rem;font-weight:700;border-radius:20px;padding:2px 9px;margin-left:8px}
+.status.live{background:#eef8ee;color:#3d7a3a}
+.status.wait{background:#fff4d6;color:#8a6d1f}
+.note{font-size:.78rem;color:var(--muted);background:#fff;border-left:3px solid var(--pink);border-radius:0 10px 10px 0;padding:12px 14px;margin-top:22px;line-height:1.8}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <h1>ナーチャリング共有ボード</h1>
+    <p>クライアントごとにボードが分かれています。開くとログイン画面になります（許可されたメールのみ）。</p>
+  </div>
+  <div class="grid">
+    <a class="card" href="index.html?board=riet">
+      <div class="l"><div class="badge riet">R</div>
+        <div><div class="name">リエット<span class="status live">稼働中</span></div>
+          <div class="sub">吉田様 ／ ダイエットコーチ事業</div></div></div>
+      <span class="go">開く →</span>
+    </a>
+    <a class="card" href="index.html?board=famm">
+      <div class="l"><div class="badge famm">F</div>
+        <div><div class="name">Famm<span class="status wait">担当者登録待ち</span></div>
+          <div class="sub">クライアント担当のメール登録後に共有可</div></div></div>
+      <span class="go">開く →</span>
+    </a>
+    <a class="card" href="index.html?board=abcash">
+      <div class="l"><div class="badge abcash">A</div>
+        <div><div class="name">ABCash<span class="status wait">担当者登録待ち</span></div>
+          <div class="sub">クライアント担当のメール登録後に共有可</div></div></div>
+      <span class="go">開く →</span>
+    </a>
+  </div>
+  <div class="note">
+    各ボードは独立しており、登録された人だけがそのボードを閲覧できます（Fammの担当者はリエットのボードを見られません）。<br>
+    Famm・ABCash のクライアント担当者のメールアドレスが決まりましたら登録します。それまではくみこ・弊社のみアクセス可能です。
+  </div>
+</div>
+</body>
+</html>
