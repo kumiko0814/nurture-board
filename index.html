@@ -182,6 +182,79 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
   padding:12px 22px;border-radius:30px;font-size:.85rem;font-weight:600;opacity:0;pointer-events:none;transition:.3s;z-index:60;box-shadow:var(--shadow)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ---------- 経営セクション（役員） ---------- */
+.exec-section{background:linear-gradient(125deg,var(--navy-deep),#37597f 70%,#4f6f92);color:#fff;
+  border-radius:20px;padding:20px;margin-top:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.exec-section::after{content:"";position:absolute;right:-30px;bottom:-40px;width:150px;height:150px;
+  background:radial-gradient(circle,rgba(240,200,105,.18),transparent 70%)}
+.exec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.exec-head h2{color:#fff;font-size:1.05rem;display:flex;align-items:center;gap:10px;margin:0}
+.exec-badge{background:#f0c869;color:var(--navy-deep);font-size:.66rem;font-weight:800;padding:3px 11px;border-radius:20px;letter-spacing:.03em}
+.exec-desc{font-size:.78rem;opacity:.82;margin:8px 0 4px}
+.directive{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:14px;
+  padding:14px 16px;margin-top:12px;position:relative}
+.directive.achieved{opacity:.62}
+.directive .d-title{font-weight:800;font-size:.98rem;line-height:1.5;padding-right:60px}
+.directive .d-body{font-size:.85rem;opacity:.92;margin-top:6px;white-space:pre-wrap;line-height:1.7}
+.directive .d-metric{margin-top:10px;background:#f0c869;color:var(--navy-deep);font-weight:800;font-size:.86rem;
+  padding:7px 14px;border-radius:9px;display:inline-block}
+.directive .d-metric .lbl{font-size:.66rem;font-weight:700;opacity:.7;display:block;margin-bottom:1px}
+.directive .d-actions{position:absolute;top:12px;right:12px;display:flex;gap:6px}
+.directive .d-actions button{font-size:.66rem;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);
+  color:#fff;border-radius:14px;padding:2px 9px;cursor:pointer}
+.exec-empty{opacity:.8;font-size:.85rem;padding:14px 4px}
+.exec-form{background:rgba(255,255,255,.12);border-radius:14px;padding:14px;margin-top:12px;display:none}
+.exec-form.on{display:block}
+.exec-form input,.exec-form textarea{width:100%;border:none;border-radius:9px;padding:10px 12px;font-family:inherit;
+  font-size:.88rem;margin-bottom:8px;color:var(--ink)}
+.exec-form textarea{min-height:60px;resize:vertical}
+.exec-form .row2{display:flex;gap:8px;justify-content:flex-end}
+.exec-add-btn{background:#f0c869;color:var(--navy-deep);border:none;border-radius:20px;padding:7px 16px;
+  font-weight:800;font-size:.8rem;cursor:pointer}
+.exec-viewonly{font-size:.72rem;opacity:.7;margin-top:10px}
+
+/* ---------- 課題トラッカー ---------- */
+.issue-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.issue-cols{grid-template-columns:1fr}}
+.issue-col{border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+.issue-col.active{border-color:#f0ab00}
+.issue-col.resolved{border-color:var(--ok)}
+.issue-colhead{padding:10px 14px;font-weight:800;font-size:.88rem;display:flex;justify-content:space-between;align-items:center}
+.issue-col.active .issue-colhead{background:#fff6e6;color:#b8862d}
+.issue-col.resolved .issue-colhead{background:#eef8ee;color:#3d7a3a}
+.issue-list{padding:8px;min-height:50px}
+.issue-card{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:7px}
+.issue-card .i-title{font-size:.9rem;font-weight:700;word-break:break-word}
+.issue-card .i-detail{font-size:.78rem;color:var(--muted);margin-top:4px;white-space:pre-wrap}
+.issue-card .i-badge{font-size:.64rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-right:6px}
+.i-badge.open{background:#fde7e7;color:#c0564a}
+.i-badge.in_progress{background:#fff2d6;color:#b8862d}
+.i-res{margin-top:8px;background:#eef8ee;border-left:3px solid var(--ok);border-radius:0 8px 8px 0;padding:7px 10px;font-size:.78rem;color:#3d7a3a;white-space:pre-wrap}
+.i-res .lbl{font-weight:800;font-size:.68rem;display:block;margin-bottom:2px}
+.i-meta{font-size:.68rem;color:var(--muted);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap}
+.i-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.i-actions button{font-size:.68rem;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:14px;padding:3px 10px;cursor:pointer}
+.i-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
+.i-actions .res:hover{border-color:var(--ok);color:var(--ok)}
+.i-actions .del:hover{border-color:var(--pink-deep);color:var(--pink-deep)}
+
+/* ---------- 成果物ログ ---------- */
+.deliv-list{list-style:none}
+.deliv-item{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:7px}
+.deliv-item .d-date{font-size:.72rem;color:var(--muted);white-space:nowrap;padding-top:2px;min-width:74px}
+.deliv-item .d-main{flex:1;min-width:0}
+.deliv-item .d-t{font-size:.9rem;font-weight:700}
+.deliv-item .d-t a{color:var(--blue-mid);text-decoration:none}
+.deliv-item .d-t a:hover{text-decoration:underline}
+.deliv-item .d-cat{font-size:.64rem;font-weight:700;background:var(--purple-soft);color:var(--purple);padding:2px 9px;border-radius:20px;margin-left:8px}
+.deliv-item .d-sum{font-size:.78rem;color:var(--muted);margin-top:3px}
+.deliv-item .d-del{color:var(--muted);cursor:pointer;font-size:.9rem}
+.subform{background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:12px;padding:12px;margin-top:10px;display:none}
+.subform.on{display:block}
+.subform input,.subform textarea,.subform select{width:100%;border:1.5px solid var(--blue-line);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:.85rem;margin-bottom:8px}
+.subform .row2{display:flex;gap:8px;justify-content:flex-end}
+.mini-add{border:1px dashed var(--blue-line);background:#fff;color:var(--blue-mid);border-radius:12px;padding:8px 16px;font-weight:700;font-size:.82rem;cursor:pointer}
+
 /* diagnostics */
 .diag{font-size:.8rem;line-height:1.8}
 .diag div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:4px 0}
@@ -224,6 +297,27 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
     <div class="progress"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
   </header>
 
+  <!-- ===== 経営セクション（役員） ===== -->
+  <div class="exec-section">
+    <div class="exec-head">
+      <h2><span class="exec-badge">経営</span>経営からの期待・注視指標</h2>
+      <button class="exec-add-btn" id="dirAddBtn" onclick="toggleDirForm()" style="display:none">＋ 期待を追加</button>
+    </div>
+    <div class="exec-desc">役員が期待する成果と「追うべき数値」を明示します。各担当者はここを確認し、現場と経営の認識を揃えてください。</div>
+    <div class="exec-form" id="dirForm">
+      <input id="dirTitle" placeholder="期待・方針の見出し（例：初回面談からの成約率を引き上げる）">
+      <textarea id="dirBody" placeholder="背景・意図・補足（任意）"></textarea>
+      <input id="dirMetric" placeholder="追うべき数値／KPI（例：成約率 15% → 20%、月間20件）">
+      <div class="row2">
+        <button class="btn ghost" onclick="toggleDirForm()">キャンセル</button>
+        <button class="btn" onclick="addDirective()">登録</button>
+      </div>
+    </div>
+    <div id="dirList"></div>
+    <div class="exec-empty" id="dirEmpty">まだ登録がありません。</div>
+    <div class="exec-viewonly" id="dirViewonly" style="display:none">※ この欄の編集は役員のみ可能です（担当者は閲覧のみ）。</div>
+  </div>
+
   <!-- ===== 議題アップ ===== -->
   <div class="section">
     <h2>議題を登録 <span class="tag">貼り付けで半自動仕分け</span></h2>
@@ -263,6 +357,31 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
     </div>
   </div>
 
+  <!-- ===== 課題トラッカー（ボトルネック） ===== -->
+  <div class="section">
+    <h2>課題トラッカー <span class="tag">発生 → 解決の軌跡</span></h2>
+    <div class="desc">ボトルネックを「対応中／解決済み」で管理します。解決時に「どう解決したか」を記録すると、解決の軌跡が資産として残ります。</div>
+    <button class="mini-add" onclick="toggleIssueForm()">＋ 課題を追加</button>
+    <div class="subform" id="issueForm">
+      <input id="issueTitle" placeholder="課題・ボトルネックの見出し（例：面談後のフォロー漏れが多い）">
+      <textarea id="issueDetail" placeholder="詳細・状況（任意）"></textarea>
+      <div class="row2">
+        <button class="btn ghost" onclick="toggleIssueForm()">キャンセル</button>
+        <button class="btn" onclick="addIssue()">登録</button>
+      </div>
+    </div>
+    <div class="issue-cols" style="margin-top:12px">
+      <div class="issue-col active">
+        <div class="issue-colhead"><span>対応中</span><span class="cnt" id="issueOpenCnt">0</span></div>
+        <div class="issue-list" id="issueOpenList"></div>
+      </div>
+      <div class="issue-col resolved">
+        <div class="issue-colhead"><span>解決済み</span><span class="cnt" id="issueResCnt">0</span></div>
+        <div class="issue-list" id="issueResList"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== つまずき ===== -->
   <div class="section">
     <h2>現在の課題 <span class="tag">相互に共有</span></h2>
@@ -287,6 +406,30 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
     <div class="desc">仕分けで「議題」に振り分けた内容がここに時系列で溜まります。</div>
     <ul class="topic-log" id="topicLog"></ul>
     <div class="empty-note" id="topicEmpty">まだ議題ログはありません。上の「議題をアップ」から追加できます。</div>
+  </div>
+
+  <!-- ===== 成果物ログ ===== -->
+  <div class="section">
+    <h2>成果物ログ <span class="tag">弊社提出物の記録</span></h2>
+    <div class="desc">提出したレポート・バナー・LP・配信文などを蓄積します。都度ファイルを探さずに、ここから過去の提出物を追えます。</div>
+    <button class="mini-add" onclick="toggleDelivForm()">＋ 成果物を追加</button>
+    <div class="subform" id="delivForm">
+      <input id="delivTitle" placeholder="タイトル（例：7月勉強会 募集バナー 3種）">
+      <select id="delivCat">
+        <option value="">種別を選択</option>
+        <option>レポート</option><option>バナー</option><option>LP</option>
+        <option>配信文</option><option>資料</option><option>議事録</option><option>その他</option>
+      </select>
+      <input id="delivUrl" placeholder="リンク（Google Drive / Docs 等のURL・任意）">
+      <textarea id="delivSummary" placeholder="概要・補足（任意）"></textarea>
+      <input id="delivDate" type="date">
+      <div class="row2">
+        <button class="btn ghost" onclick="toggleDelivForm()">キャンセル</button>
+        <button class="btn" onclick="addDeliverable()">登録</button>
+      </div>
+    </div>
+    <ul class="deliv-list" id="delivList" style="margin-top:12px"></ul>
+    <div class="empty-note" id="delivEmpty">まだ成果物の記録はありません。</div>
   </div>
 
   <!-- ===== status ===== -->
@@ -316,10 +459,11 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
       <div class="fhint">未入力の場合は「ナーチャリング共有ボード」になります</div>
     </div>
     <div class="setfield">
-      <label>ご利用者はどちらですか</label>
+      <label>ご利用者の種別</label>
       <div class="rolepick">
         <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> くみこ</label>
         <label class="rolebtn"><input type="radio" name="setRole" value="client"> <span id="roleClientLabel">クライアント</span></label>
+        <label class="rolebtn"><input type="radio" name="setRole" value="executive"> 役員</label>
       </div>
     </div>
     <div class="modal-actions">
@@ -365,8 +509,10 @@ if (SUPABASE_CONFIG.enabled && window.supabase) {
 }
 let ROLE = localStorage.getItem('nurture_role'); // 'kumiko' | 'client'
 let META = { title:'ナーチャリング共有ボード', client_label:'クライアント' };
-let TASKS = [], TOPICS = [];
+let TASKS = [], TOPICS = [], DIRECTIVES = [], ISSUES = [], DELIVS = [];
 let pvData = [];
+function isExec(){ return ROLE==='executive'; }
+function canEditDirectives(){ return ROLE==='executive' || ROLE==='kumiko'; }
 
 // ============================================================
 // 役割（自分はどっち？）
@@ -383,9 +529,18 @@ function switchRole(){
   paintRole();
 }
 function paintRole(){
-  document.getElementById('whoName').textContent = (ROLE==='kumiko') ? 'くみこ' : META.client_label;
+  const name = ROLE==='kumiko' ? 'くみこ' : ROLE==='executive' ? '役員' : META.client_label;
+  document.getElementById('whoName').textContent = name;
   document.getElementById('mineK').style.display = ROLE==='kumiko' ? '' : 'none';
   document.getElementById('mineC').style.display = ROLE==='client' ? '' : 'none';
+  // 経営セクションの編集権限（役員・くみこのみ）
+  const canDir = canEditDirectives();
+  const addBtn = document.getElementById('dirAddBtn');
+  if(addBtn) addBtn.style.display = canDir ? '' : 'none';
+  const vo = document.getElementById('dirViewonly');
+  if(vo) vo.style.display = canDir ? 'none' : 'block';
+  if(!canDir){ const f=document.getElementById('dirForm'); if(f) f.classList.remove('on'); }
+  renderDirectives();
 }
 
 // ============================================================
@@ -432,16 +587,20 @@ async function saveSettings(){
 async function loadAll(manual){
   if(!sb){ setConn(false,'未接続：supabase_config.js を確認'); return; }
   try{
-    const [m,t,tp,st] = await Promise.all([
+    const [m,t,tp,st,dir,iss,dlv] = await Promise.all([
       sb.from('nurture_meta').select('*').eq('board_id',BID).maybeSingle(),
       sb.from('nurture_tasks').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
       sb.from('nurture_topics').select('*').eq('board_id',BID).order('created_at',{ascending:false}),
-      sb.from('nurture_stuck').select('*').eq('board_id',BID)
+      sb.from('nurture_stuck').select('*').eq('board_id',BID),
+      sb.from('nurture_directives').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
+      sb.from('nurture_issues').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:false}),
+      sb.from('nurture_deliverables').select('*').eq('board_id',BID).order('delivered_on',{ascending:false}).order('created_at',{ascending:false})
     ]);
     if(m.data){ META.title=m.data.title||META.title; META.client_label=m.data.client_label||META.client_label; }
     applyMeta();
     TASKS = t.data||[]; TOPICS = tp.data||[];
-    renderTasks(); renderTopics();
+    DIRECTIVES = dir.data||[]; ISSUES = iss.data||[]; DELIVS = dlv.data||[];
+    renderTasks(); renderTopics(); renderDirectives(); renderIssues(); renderDeliverables();
     // stuck（自分が編集中の欄は上書きしない）
     (st.data||[]).forEach(row=>{
       const el = row.owner==='kumiko' ? document.getElementById('stuckK') : document.getElementById('stuckC');
@@ -580,6 +739,190 @@ async function delTopic(id){
 }
 
 // ============================================================
+// 共通ユーティリティ（新セクション用）
+// ============================================================
+async function patchRow(table,arr,id,patch,rerender){
+  if(!sb)return;
+  patch.updated_at=new Date().toISOString();
+  const {data,error}=await sb.from(table).update(patch).eq('id',id).select().single();
+  if(error){toast('更新エラー');return;}
+  const i=arr.findIndex(x=>x.id===id); if(i>=0)arr[i]=data; if(rerender)rerender();
+}
+function fmtDate(s){ if(!s)return''; const p=String(s).slice(0,10).split('-'); return p.length===3?(+p[1])+'/'+(+p[2]):esc(s); }
+function ownerLabel(o){ return o==='kumiko'?'くみこ':o==='client'?(META.client_label||'クライアント'):o==='executive'?'役員':esc(o); }
+
+// ============================================================
+// 経営：期待・注視指標（役員／くみこが編集、担当者は閲覧）
+// ============================================================
+function toggleDirForm(){ if(!canEditDirectives())return; document.getElementById('dirForm').classList.toggle('on'); }
+function renderDirectives(){
+  const list=document.getElementById('dirList'); if(!list) return;
+  list.innerHTML='';
+  document.getElementById('dirEmpty').style.display = DIRECTIVES.length?'none':'block';
+  const canEdit=canEditDirectives();
+  DIRECTIVES.forEach(d=>{
+    const el=document.createElement('div');
+    el.className='directive'+(d.status==='achieved'?' achieved':'');
+    let html='<div class="d-title">'+esc(d.title)+'</div>';
+    if(d.body) html+='<div class="d-body">'+esc(d.body)+'</div>';
+    if(d.metric) html+='<div class="d-metric"><span class="lbl">追うべき数値／KPI</span>'+esc(d.metric)+'</div>';
+    if(canEdit){
+      html+='<div class="d-actions">'+
+        '<button onclick="toggleDirAchieved(\''+d.id+'\')">'+(d.status==='achieved'?'再開':'達成')+'</button>'+
+        '<button onclick="editDirective(\''+d.id+'\')">編集</button>'+
+        '<button onclick="delDirective(\''+d.id+'\')">削除</button>'+
+      '</div>';
+    }
+    el.innerHTML=html;
+    list.appendChild(el);
+  });
+}
+async function addDirective(){
+  if(!sb||!canEditDirectives())return;
+  const title=document.getElementById('dirTitle').value.trim();
+  if(!title){toast('見出しを入力してください');return;}
+  const body=document.getElementById('dirBody').value.trim();
+  const metric=document.getElementById('dirMetric').value.trim();
+  const {data,error}=await sb.from('nurture_directives').insert({board_id:BID,title,body,metric,author:ROLE,status:'active',sort_order:Date.now()}).select().single();
+  if(error){toast('登録エラー');return;}
+  DIRECTIVES.push(data);
+  document.getElementById('dirTitle').value='';document.getElementById('dirBody').value='';document.getElementById('dirMetric').value='';
+  document.getElementById('dirForm').classList.remove('on');
+  renderDirectives(); toast('登録しました');
+}
+async function editDirective(id){
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
+  const title=prompt('見出し',d.title); if(title===null)return;
+  const body=prompt('背景・意図（任意）',d.body||''); if(body===null)return;
+  const metric=prompt('追うべき数値／KPI',d.metric||''); if(metric===null)return;
+  await patchRow('nurture_directives',DIRECTIVES,id,{title:title.trim(),body:body.trim(),metric:metric.trim()},renderDirectives);
+}
+async function toggleDirAchieved(id){
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
+  await patchRow('nurture_directives',DIRECTIVES,id,{status:d.status==='achieved'?'active':'achieved'},renderDirectives);
+}
+async function delDirective(id){
+  if(!canEditDirectives())return;
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d)return;
+  if(!confirm('削除しますか？\n「'+d.title+'」'))return;
+  await sb.from('nurture_directives').delete().eq('id',id);
+  DIRECTIVES=DIRECTIVES.filter(x=>x.id!==id); renderDirectives();
+}
+
+// ============================================================
+// 課題トラッカー（ボトルネック → 解決の軌跡）
+// ============================================================
+function toggleIssueForm(){ document.getElementById('issueForm').classList.toggle('on'); }
+function renderIssues(){
+  const openL=document.getElementById('issueOpenList'), resL=document.getElementById('issueResList');
+  if(!openL) return;
+  openL.innerHTML=''; resL.innerHTML='';
+  const open=ISSUES.filter(i=>i.status!=='resolved');
+  const res=ISSUES.filter(i=>i.status==='resolved');
+  document.getElementById('issueOpenCnt').textContent=open.length;
+  document.getElementById('issueResCnt').textContent=res.length;
+  if(!open.length) openL.innerHTML='<div class="empty-note">対応中の課題はありません</div>';
+  if(!res.length) resL.innerHTML='<div class="empty-note">解決済みはまだありません</div>';
+  open.forEach(i=>openL.appendChild(issueEl(i)));
+  res.forEach(i=>resL.appendChild(issueEl(i)));
+}
+function issueEl(i){
+  const el=document.createElement('div');
+  el.className='issue-card'+(i.status==='resolved'?' resolved':'');
+  let html='';
+  if(i.status!=='resolved') html+='<span class="i-badge '+(i.status==='in_progress'?'in_progress':'open')+'">'+(i.status==='in_progress'?'対応中':'未着手')+'</span>';
+  html+='<span class="i-title">'+esc(i.title)+'</span>';
+  if(i.detail) html+='<div class="i-detail">'+esc(i.detail)+'</div>';
+  if(i.status==='resolved' && i.resolution) html+='<div class="i-res"><span class="lbl">解決の内容</span>'+esc(i.resolution)+'</div>';
+  html+='<div class="i-meta"><span>発生 '+fmtDate(i.opened_on)+'</span>'+(i.resolved_on?'<span>解決 '+fmtDate(i.resolved_on)+'</span>':'')+(i.owner?'<span>担当 '+ownerLabel(i.owner)+'</span>':'')+'</div>';
+  html+='<div class="i-actions">';
+  if(i.status==='open') html+='<button onclick="setIssueStatus(\''+i.id+'\',\'in_progress\')">対応中にする</button>';
+  if(i.status!=='resolved') html+='<button class="res" onclick="resolveIssue(\''+i.id+'\')">解決にする</button>';
+  else html+='<button onclick="setIssueStatus(\''+i.id+'\',\'in_progress\')">対応中に戻す</button>';
+  html+='<button onclick="editIssue(\''+i.id+'\')">編集</button>';
+  html+='<button class="del" onclick="delIssue(\''+i.id+'\')">削除</button></div>';
+  el.innerHTML=html;
+  return el;
+}
+async function addIssue(){
+  if(!sb)return;
+  const title=document.getElementById('issueTitle').value.trim();
+  if(!title){toast('課題の見出しを入力してください');return;}
+  const detail=document.getElementById('issueDetail').value.trim();
+  const {data,error}=await sb.from('nurture_issues').insert({board_id:BID,title,detail,status:'open',owner:ROLE,sort_order:Date.now()}).select().single();
+  if(error){toast('登録エラー');return;}
+  ISSUES.unshift(data);
+  document.getElementById('issueTitle').value='';document.getElementById('issueDetail').value='';
+  document.getElementById('issueForm').classList.remove('on');
+  renderIssues(); toast('課題を登録しました');
+}
+async function setIssueStatus(id,status){
+  const patch={status}; if(status!=='resolved') patch.resolved_on=null;
+  await patchRow('nurture_issues',ISSUES,id,patch,renderIssues);
+}
+async function resolveIssue(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i)return;
+  const res=prompt('どのように解決しましたか？（解決の内容を記録します）',i.resolution||''); if(res===null)return;
+  const today=new Date().toISOString().slice(0,10);
+  await patchRow('nurture_issues',ISSUES,id,{status:'resolved',resolution:res.trim(),resolved_on:today},renderIssues);
+  toast('解決済みにしました');
+}
+async function editIssue(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i)return;
+  const title=prompt('課題の見出し',i.title); if(title===null)return;
+  const detail=prompt('詳細（任意）',i.detail||''); if(detail===null)return;
+  await patchRow('nurture_issues',ISSUES,id,{title:title.trim(),detail:detail.trim()},renderIssues);
+}
+async function delIssue(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i)return;
+  if(!confirm('削除しますか？\n「'+i.title+'」'))return;
+  await sb.from('nurture_issues').delete().eq('id',id);
+  ISSUES=ISSUES.filter(x=>x.id!==id); renderIssues();
+}
+
+// ============================================================
+// 成果物ログ（弊社提出物）
+// ============================================================
+function toggleDelivForm(){ document.getElementById('delivForm').classList.toggle('on'); }
+function renderDeliverables(){
+  const ul=document.getElementById('delivList'); if(!ul)return;
+  ul.innerHTML='';
+  document.getElementById('delivEmpty').style.display = DELIVS.length?'none':'block';
+  DELIVS.forEach(d=>{
+    const li=document.createElement('li'); li.className='deliv-item';
+    const titleHtml = d.url ? '<a href="'+esc(d.url)+'" target="_blank" rel="noopener">'+esc(d.title)+'</a>' : esc(d.title);
+    li.innerHTML='<div class="d-date">'+fmtDate(d.delivered_on)+'</div>'+
+      '<div class="d-main"><div class="d-t">'+titleHtml+(d.category?'<span class="d-cat">'+esc(d.category)+'</span>':'')+'</div>'+
+      (d.summary?'<div class="d-sum">'+esc(d.summary)+'</div>':'')+'</div>'+
+      '<span class="d-del" onclick="delDeliverable(\''+d.id+'\')">×</span>';
+    ul.appendChild(li);
+  });
+}
+async function addDeliverable(){
+  if(!sb)return;
+  const title=document.getElementById('delivTitle').value.trim();
+  if(!title){toast('タイトルを入力してください');return;}
+  const category=document.getElementById('delivCat').value;
+  const url=document.getElementById('delivUrl').value.trim();
+  const summary=document.getElementById('delivSummary').value.trim();
+  const date=document.getElementById('delivDate').value || new Date().toISOString().slice(0,10);
+  const {data,error}=await sb.from('nurture_deliverables').insert({board_id:BID,title,category,url,summary,delivered_on:date}).select().single();
+  if(error){toast('登録エラー');return;}
+  DELIVS.unshift(data);
+  DELIVS.sort((a,b)=>String(b.delivered_on||'').localeCompare(String(a.delivered_on||'')));
+  ['delivTitle','delivUrl','delivSummary'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('delivCat').value=''; document.getElementById('delivDate').value='';
+  document.getElementById('delivForm').classList.remove('on');
+  renderDeliverables(); toast('成果物を登録しました');
+}
+async function delDeliverable(id){
+  const d=DELIVS.find(x=>x.id===id); if(!d)return;
+  if(!confirm('削除しますか？\n「'+d.title+'」'))return;
+  await sb.from('nurture_deliverables').delete().eq('id',id);
+  DELIVS=DELIVS.filter(x=>x.id!==id); renderDeliverables();
+}
+
+// ============================================================
 // つまずきメモ（人ごと・自動保存）
 // ============================================================
 let stuckTimers={};
@@ -679,6 +1022,9 @@ async function runDiag(){
   rows.push(await checkTable('nurture_topics'));
   rows.push(await checkTable('nurture_stuck'));
   rows.push(await checkTable('nurture_meta'));
+  rows.push(await checkTable('nurture_directives'));
+  rows.push(await checkTable('nurture_issues'));
+  rows.push(await checkTable('nurture_deliverables'));
   body.innerHTML = '<div><span>Supabase URL</span><span class="g">'+SUPABASE_CONFIG.url.replace('https://','')+'</span></div>'+
     '<div><span>ボードID</span><span class="g">'+BID+'</span></div>'+ rows.join('');
 }
