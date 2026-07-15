@@ -208,6 +208,26 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 .exec-form input,.exec-form textarea,.exec-form select{width:100%;border:none;border-radius:9px;padding:10px 12px;font-family:inherit;
   font-size:.88rem;margin-bottom:8px;color:var(--ink)}
 .kpi-dir{font-size:.64rem;font-weight:700;color:var(--muted);margin-left:6px}
+/* 目標セクション（白背景）用にKPIカードへ枠 */
+.goal-section .kpi{border:1px solid var(--line);box-shadow:0 2px 10px rgba(38,64,95,.05)}
+.goal-section h2{align-items:center}
+/* 議事録貼り付け折りたたみ（タスク内） */
+details.paste-fold{margin-top:4px}
+details.paste-fold > summary{list-style:none;cursor:pointer;font-size:.8rem;font-weight:700;color:var(--blue-mid);
+  padding:8px 14px;background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:12px;display:inline-flex;align-items:center;gap:6px;user-select:none}
+details.paste-fold > summary::-webkit-details-marker{display:none}
+details.paste-fold > summary::before{content:"＋";font-weight:800}
+details.paste-fold[open] > summary::before{content:"−"}
+/* 役員からの指摘・依頼（強調・目立たせる） */
+.exec-req-block{background:rgba(240,201,105,.15);border:1.5px solid #f0c869;border-radius:14px;padding:15px;margin-top:14px}
+.exec-block-head.req{color:#ffe0a3}
+.req-badge{background:#f0ab00;color:#3a2c00;font-size:.62rem;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:8px}
+.exec-req-list{list-style:none;margin-top:10px}
+.exec-req-list li{background:#fff;border-radius:12px;padding:13px 15px;margin-bottom:9px;border-left:5px solid #f0ab00;box-shadow:0 3px 12px rgba(240,171,0,.22)}
+.exec-req-list .n-body{font-size:.92rem;font-weight:600;line-height:1.7;white-space:pre-wrap;color:var(--ink)}
+.exec-req-list .n-meta{font-size:.68rem;color:var(--muted);margin-top:7px;display:flex;justify-content:space-between}
+.exec-req-list .n-del{cursor:pointer;color:var(--muted)}
+.req-btn{background:linear-gradient(120deg,#f0ab00,#e0863f)!important;box-shadow:0 4px 14px rgba(224,134,63,.4)!important}
 .exec-form textarea{min-height:60px;resize:vertical}
 .exec-form .row2{display:flex;gap:8px;justify-content:flex-end}
 .exec-add-btn{background:#f0c869;color:var(--navy-deep);border:none;border-radius:20px;padding:7px 16px;
@@ -314,6 +334,7 @@ details.rec .rec-body{padding:0 18px 18px}
 <div id="authGate" class="authgate hide">
   <div class="authcard">
     <h2>ナーチャリング共有ボード</h2>
+    <div id="gateBoard" style="font-weight:800;color:#26405f;font-size:.92rem;margin-bottom:10px"></div>
     <p class="authlead">許可されたメールアドレスの方のみご利用いただけます。<br>ご登録のメールアドレスをご入力ください。</p>
     <div id="authStep1">
       <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"
@@ -330,7 +351,7 @@ details.rec .rec-body{padding:0 18px 18px}
 </div>
 
 <div class="wrap">
-  <div class="demo-banner"><span><b>デモ版プレビュー</b>｜サンプルデータです（KPIも例です。本番は話し合って自由に入力）。右上の「切替」で くみこ／クライアント／役員 の見え方を試せます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
+  <div class="demo-banner"><span><b>デモ版プレビュー</b>｜サンプルデータです（自由に操作できます）。右上の「切替」で くみこ／クライアント／役員 の見え方を試せます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
 
   <!-- ===== HEADER ===== -->
   <header>
@@ -345,55 +366,24 @@ details.rec .rec-body{padding:0 18px 18px}
     <div class="progress"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
   </header>
 
-  <!-- ===== 経営ダッシュボード ===== -->
-  <div class="exec-section">
-    <div class="exec-head"><h2><span class="exec-badge">経営</span>経営ダッシュボード</h2></div>
-    <div class="exec-desc">追う指標は役員と現場の話し合いで決めて入力します（成約率・キャンセル率に限らず複数可）。「目標と現在値」で成果を可視化し、役員からの指示もここに集約します。</div>
-
-    <div class="exec-block">
-      <div class="exec-block-head"><span>注視KPI（話し合って決めた指標を入力）</span>
-        <button class="exec-add-btn" id="dirAddBtn" onclick="toggleDirForm()" style="display:none">＋ KPIを追加</button></div>
-      <div class="exec-form" id="dirForm">
-        <input id="dirTitle" placeholder="ねらい・見出し（例：初回面談からの成約率を引き上げる）">
-        <div class="form-row">
-          <input id="dirMetricLabel" placeholder="指標名（例：成約率）">
-          <input id="dirUnit" class="w-unit" placeholder="単位（例：%・件）">
-        </div>
-        <div class="form-row">
-          <input id="dirTarget" placeholder="目標値（例：20）">
-          <input id="dirCurrent" placeholder="現在値（例：16）">
-        </div>
-        <select id="dirGoalDir">
-          <option value="up">高い方が良い指標（例：成約率・件数）</option>
-          <option value="down">低い方が良い指標（例：キャンセル率・離脱率）</option>
-        </select>
-        <textarea id="dirBody" placeholder="背景・意図（任意）"></textarea>
-        <div class="row2">
-          <button class="btn ghost" onclick="toggleDirForm()">キャンセル</button>
-          <button class="btn" onclick="addDirective()">登録</button>
-        </div>
-      </div>
-      <div class="kpi-grid" id="dirList"></div>
-      <div class="exec-empty" id="dirEmpty">まだKPIの登録がありません。役員と話し合って決めた指標（成約率・キャンセル率・件数など、いくつでも）を「＋ KPIを追加」から入力してください。</div>
-    </div>
-
-    <div class="exec-block">
-      <div class="exec-block-head"><span>役員からの指示・コメント</span></div>
-      <div class="exec-note-form" id="execNoteForm" style="display:none">
-        <textarea id="execNoteBody" placeholder="例）面談後フォローの精度を最優先に。次はLP離脱の課題に着手してほしい。"></textarea>
-        <div class="row2"><button class="btn" onclick="addExecNote()">投稿</button></div>
-      </div>
-      <ul class="exec-note-list" id="execNoteList"></ul>
-      <div class="exec-empty" id="execNoteEmpty">まだコメントはありません。</div>
-    </div>
-    <div class="exec-viewonly" id="dirViewonly" style="display:none">KPI・指示の編集は役員（および弊社）のみ可能です。担当者は閲覧のみとなります。</div>
-  </div>
-
-  <!-- ===== ToDo 2人分 ===== -->
+  <!-- ===== 1. タスク｜やるべきこと（議事録貼り付けで自動仕分け） ===== -->
   <div class="section">
-    <h2>タスク一覧 <span class="tag">完了したらチェック</span></h2>
-    <div class="desc">双方の担当を一覧で確認できます。チェックで完了、着手中への切替、タスクごとの補足メモも残せます。</div>
-    <div class="cols">
+    <h2>タスク｜やるべきこと <span class="tag">チェックで完了</span></h2>
+    <div class="desc">「次に何をするか」がひと目でわかります。議事録・メモを貼り付ければ、お互いのタスクへ自動で振り分けられます。</div>
+    <details class="paste-fold">
+      <summary>議事録・メモを貼り付けて自動仕分け</summary>
+      <div style="padding:12px 0 0">
+        <textarea id="pasteBox" class="paste-box" placeholder="例）
+・くみこ → LT1の配信文を金曜までに送る
+・◯◯様はリッチメニューの画像を用意
+決定：初回配信は夜21時に固定"></textarea>
+        <div class="paste-actions">
+          <button class="btn" onclick="parseAndPreview()">仕分け</button>
+          <button class="btn ghost" onclick="document.getElementById('pasteBox').value=''">クリア</button>
+        </div>
+      </div>
+    </details>
+    <div class="cols" style="margin-top:14px">
       <div class="col kumiko">
         <div class="col-head"><span>くみこ<span class="mine-badge" id="mineK" style="display:none">あなた</span></span><span class="cnt" id="cntK">0</span></div>
         <ul class="tasklist" id="listK"></ul>
@@ -413,7 +403,36 @@ details.rec .rec-body{padding:0 18px 18px}
     </div>
   </div>
 
-  <!-- ===== 相互メモ欄（今の作業・進捗） ===== -->
+  <!-- ===== 2. 目指すべき目標（KPI） ===== -->
+  <div class="section goal-section">
+    <h2>目指すべき目標 <span class="tag">今追う数値（目標と現在値）</span>
+      <button class="mini-add" id="dirAddBtn" onclick="toggleDirForm()" style="margin-left:auto">＋ 目標を追加</button></h2>
+    <div class="desc">お互いで話し合って決めた目標を入力します（成約率・キャンセル率・件数など、いくつでも）。</div>
+    <div class="subform" id="dirForm">
+      <input id="dirTitle" placeholder="ねらい・見出し（例：初回面談からの成約率を引き上げる）">
+      <div class="form-row">
+        <input id="dirMetricLabel" placeholder="指標名（例：成約率）">
+        <input id="dirUnit" class="w-unit" placeholder="単位（例：%・件）">
+      </div>
+      <div class="form-row">
+        <input id="dirTarget" placeholder="目標値（例：20）">
+        <input id="dirCurrent" placeholder="現在値（例：16）">
+      </div>
+      <select id="dirGoalDir">
+        <option value="up">高い方が良い指標（例：成約率・件数）</option>
+        <option value="down">低い方が良い指標（例：キャンセル率・離脱率）</option>
+      </select>
+      <textarea id="dirBody" placeholder="背景・意図（任意）"></textarea>
+      <div class="row2">
+        <button class="btn ghost" onclick="toggleDirForm()">キャンセル</button>
+        <button class="btn" onclick="addDirective()">登録</button>
+      </div>
+    </div>
+    <div class="kpi-grid" id="dirList"></div>
+    <div class="empty-note" id="dirEmpty">まだ目標がありません。「＋ 目標を追加」から、話し合って決めた指標を入力してください。</div>
+  </div>
+
+  <!-- ===== 3. 相互メモ欄（今の作業・進捗） ===== -->
   <div class="section">
     <h2>相互メモ <span class="tag">今の作業・進捗をリアルタイム共有</span></h2>
     <div class="desc">「今どんな作業をしているか」「どのくらい進んでいるか」を書いておくと、相手にリアルタイムで共有されます（自動保存）。困っている点もここに書けます。</div>
@@ -431,7 +450,7 @@ details.rec .rec-body{padding:0 18px 18px}
     </div>
   </div>
 
-  <!-- ===== 成果物ログ（常時表示） ===== -->
+  <!-- ===== 4. 成果物ログ（常時表示） ===== -->
   <div class="section">
     <h2>成果物ログ <span class="tag">弊社提出物の記録</span><span class="rec-cnt" id="delivCnt" style="margin-left:8px"></span></h2>
     <div class="desc">提出したレポート・バナー・LP・配信文などを蓄積します。都度ファイルを探さずに、ここから過去の提出物を追えます。</div>
@@ -455,22 +474,7 @@ details.rec .rec-body{padding:0 18px 18px}
     <div class="empty-note" id="delivEmpty">まだ成果物の記録はありません。</div>
   </div>
 
-  <!-- ===== 記録（折りたたみ・普段は閉じておく） ===== -->
-  <details class="rec">
-    <summary>議題を登録（メモを貼り付けて自動仕分け）</summary>
-    <div class="rec-body">
-      <div class="desc">打ち合わせのメモや議事録を貼り付けて「仕分け」を押すと、タスクと議題ログに自動で振り分けます。内容は次の画面で修正できます。</div>
-      <textarea id="pasteBox" class="paste-box" placeholder="例）
-・くみこ → LT1の配信文を金曜までに送る
-・◯◯様はリッチメニューの画像を用意
-決定：初回配信は夜21時に固定"></textarea>
-      <div class="paste-actions">
-        <button class="btn" onclick="parseAndPreview()">仕分け</button>
-        <button class="btn ghost" onclick="document.getElementById('pasteBox').value=''">クリア</button>
-      </div>
-    </div>
-  </details>
-
+  <!-- ===== 5. 議題ログ（折りたたみ） ===== -->
   <details class="rec">
     <summary>議題ログ（協議・決定事項）<span class="rec-cnt" id="topicCnt"></span></summary>
     <div class="rec-body">
@@ -478,6 +482,34 @@ details.rec .rec-body{padding:0 18px 18px}
       <div class="empty-note" id="topicEmpty">まだ議題ログはありません。</div>
     </div>
   </details>
+
+  <!-- ===== 6. 役員から（最下部） ===== -->
+  <div class="exec-section">
+    <div class="exec-head"><h2><span class="exec-badge">経営</span>役員から</h2></div>
+    <div class="exec-desc">役員（代表）からのメッセージです。担当者は必ずここを確認してください。</div>
+
+    <!-- 指摘・依頼事項（特に重要・強調） -->
+    <div class="exec-req-block">
+      <div class="exec-block-head req"><span>役員からの指摘・依頼事項</span><span class="req-badge">要対応</span></div>
+      <div class="exec-note-form" id="execReqForm" style="display:none">
+        <textarea id="execReqBody" placeholder="例）面談後フォローの精度を最優先に。今週中に翌日連絡を仕組み化してほしい。"></textarea>
+        <div class="row2"><button class="btn req-btn" onclick="addExecNote('request')">投稿</button></div>
+      </div>
+      <ul class="exec-req-list" id="execReqList"></ul>
+      <div class="exec-empty" id="execReqEmpty">現在、指摘・依頼事項はありません。</div>
+    </div>
+
+    <!-- 一言 -->
+    <div class="exec-block">
+      <div class="exec-block-head"><span>役員からの一言</span></div>
+      <div class="exec-note-form" id="execNoteForm" style="display:none">
+        <textarea id="execNoteBody" placeholder="例）進捗ありがとうございます。この調子でお願いします。"></textarea>
+        <div class="row2"><button class="btn" onclick="addExecNote('note')">投稿</button></div>
+      </div>
+      <ul class="exec-note-list" id="execNoteList"></ul>
+      <div class="exec-empty" id="execNoteEmpty">まだ一言はありません。</div>
+    </div>
+  </div>
 
 
   <!-- ===== status ===== -->
@@ -551,13 +583,17 @@ details.rec .rec-body{padding:0 18px 18px}
 // 初期化
 // ============================================================
 const BID = SUPABASE_CONFIG.boardId || 'client1';
+const BOARD_NAMES = { riet:'リエット', famm:'Famm', abcash:'ABCash', client1:'デモ' };
+(function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent='「'+(BOARD_NAMES[BID]||BID)+'」専用ボード'; })();
 let sb = makeSB();
 let ROLE = localStorage.getItem('nurture_role'); // 'kumiko' | 'client'
 let META = { title:'ナーチャリング共有ボード', client_label:'クライアント' };
 let TASKS = [], TOPICS = [], DIRECTIVES = [], ISSUES = [], DELIVS = [], EXEC_NOTES = [];
 let pvData = [];
 function isExec(){ return ROLE==='executive'; }
-function canEditDirectives(){ return ROLE==='executive' || ROLE==='kumiko'; }
+// 目標・役員メッセージの編集可否。少人数の信頼ベース運用のため、ログインメンバーは全員編集可
+// （代表がほぼ一人で回す会社でも自然に使えるようにする）
+function canEditDirectives(){ return true; }
 
 // ============================================================
 // 役割（自分はどっち？）
@@ -582,10 +618,10 @@ function paintRole(){
   const canDir = canEditDirectives();
   const addBtn = document.getElementById('dirAddBtn');
   if(addBtn) addBtn.style.display = canDir ? '' : 'none';
-  const vo = document.getElementById('dirViewonly');
-  if(vo) vo.style.display = canDir ? 'none' : 'block';
   const nf = document.getElementById('execNoteForm');
   if(nf) nf.style.display = canDir ? 'block' : 'none';
+  const rf = document.getElementById('execReqForm');
+  if(rf) rf.style.display = canDir ? 'block' : 'none';
   if(!canDir){ const f=document.getElementById('dirForm'); if(f) f.classList.remove('on'); }
   renderDirectives(); renderExecNotes();
 }
@@ -892,27 +928,35 @@ async function delDirective(id){
   DIRECTIVES=DIRECTIVES.filter(x=>x.id!==id); renderDirectives();
 }
 
-// 役員コメント・指示
+// 役員コメント（一言＝note ／ 指摘・依頼＝request の2種類）
 function renderExecNotes(){
-  const ul=document.getElementById('execNoteList'); if(!ul) return;
-  ul.innerHTML='';
-  document.getElementById('execNoteEmpty').style.display = EXEC_NOTES.length?'none':'block';
   const canEdit=canEditDirectives();
-  EXEC_NOTES.forEach(n=>{
-    const li=document.createElement('li');
-    const d=new Date(n.created_at);
-    const who=n.author==='executive'?'役員':n.author==='kumiko'?'くみこ':ownerLabel(n.author);
-    li.innerHTML='<div class="n-body">'+esc(n.body)+'</div>'+
-      '<div class="n-meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+'</span>'+
-      (canEdit?'<span class="n-del" onclick="delExecNote(\''+n.id+'\')">削除</span>':'')+'</div>';
-    ul.appendChild(li);
-  });
+  const noteUl=document.getElementById('execNoteList');
+  const reqUl=document.getElementById('execReqList');
+  if(!noteUl && !reqUl) return;
+  const fill=(ul,emptyId,arr)=>{
+    if(!ul) return;
+    ul.innerHTML='';
+    const em=document.getElementById(emptyId); if(em) em.style.display = arr.length?'none':'block';
+    arr.forEach(n=>{
+      const li=document.createElement('li');
+      const d=new Date(n.created_at);
+      const who=n.author==='executive'?'役員':n.author==='kumiko'?'くみこ':ownerLabel(n.author);
+      li.innerHTML='<div class="n-body">'+esc(n.body)+'</div>'+
+        '<div class="n-meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+'</span>'+
+        (canEdit?'<span class="n-del" onclick="delExecNote(\''+n.id+'\')">削除</span>':'')+'</div>';
+      ul.appendChild(li);
+    });
+  };
+  fill(reqUl,'execReqEmpty', EXEC_NOTES.filter(n=>n.kind==='request'));
+  fill(noteUl,'execNoteEmpty', EXEC_NOTES.filter(n=>n.kind!=='request'));
 }
-async function addExecNote(){
+async function addExecNote(kind){
   if(!sb||!canEditDirectives())return;
-  const el=document.getElementById('execNoteBody');
-  const body=el.value.trim(); if(!body){toast('コメントを入力してください');return;}
-  const {data,error}=await sb.from('nurture_exec_notes').insert({board_id:BID,body,author:ROLE}).select().single();
+  kind = (kind==='request') ? 'request' : 'note';
+  const el=document.getElementById(kind==='request'?'execReqBody':'execNoteBody');
+  const body=el.value.trim(); if(!body){toast('内容を入力してください');return;}
+  const {data,error}=await sb.from('nurture_exec_notes').insert({board_id:BID,body,author:ROLE,kind}).select().single();
   if(error){toast('投稿エラー');return;}
   EXEC_NOTES.unshift(data); el.value='';
   renderExecNotes(); toast('投稿しました');
@@ -1142,6 +1186,7 @@ async function runDiag(){
   rows.push(await checkTable('nurture_issues'));
   rows.push(await checkTable('nurture_deliverables'));
   rows.push(await checkTable('nurture_exec_notes'));
+  rows.push(await checkTable('nurture_access'));
   body.innerHTML = '<div><span>Supabase URL</span><span class="g">'+SUPABASE_CONFIG.url.replace('https://','')+'</span></div>'+
     '<div><span>ボードID</span><span class="g">'+BID+'</span></div>'+ rows.join('');
 }
@@ -1171,7 +1216,7 @@ function closeEl(id){ document.getElementById(id).classList.remove('on'); }
 // ============================================================
 // 認証（許可アドレスのみ・メールリンクログイン）
 // ============================================================
-const ALLOW = ['4morikawa5@gmail.com','k.morikawa@merone.jp','anchidaietrieyoshida@gmail.com'];
+// アクセス可否は Supabase の nurture_access（ボード別許可リスト）で判定する
 let boardStarted = false;
 
 function authMsg(text,type){
@@ -1188,7 +1233,6 @@ function resetAuth(){
 async function sendMagic(){
   const email=(document.getElementById('authEmail').value||'').trim().toLowerCase();
   if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ authMsg('メールアドレスを正しくご入力ください','err'); return; }
-  if(!ALLOW.includes(email)){ authMsg('このアドレスは許可リストに登録されていません。管理者にお問い合わせください。','err'); return; }
   const btn=document.getElementById('authSendBtn'); btn.disabled=true; btn.textContent='送信中…';
   const {error}=await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
   btn.disabled=false; btn.textContent='ログイン用リンクを送信';
@@ -1201,9 +1245,14 @@ async function sendMagic(){
 async function evalSession(session){
   if(session && session.user){
     const email=(session.user.email||'').toLowerCase();
-    if(!ALLOW.includes(email)){
+    let ok=false;
+    try{
+      const {data}=await sb.from('nurture_access').select('board_id').eq('board_id',BID).eq('email',email).maybeSingle();
+      ok=!!data;
+    }catch(e){ ok=false; }
+    if(!ok){
       await sb.auth.signOut(); showGate(); resetAuth();
-      authMsg('このアドレスには閲覧権限がありません','err'); return false;
+      authMsg('このボードへのアクセス権限がありません。担当者にご確認ください。','err'); return false;
     }
     document.getElementById('authUser').textContent=email+'　';
     hideGate();
@@ -1233,15 +1282,15 @@ function makeSB(){
   const SEED={
     nurture_meta:[{board_id:'client1',title:'○○株式会社 ナーチャリング進行ボード',client_label:'○○株式会社'}],
     nurture_directives:[
-      {id:'d1',board_id:'client1',title:'初回面談からの成約率を今期中に引き上げる',body:'（例）役員と話し合って決めた指標です。',metric_label:'成約率',target_value:'20',current_value:'16',unit:'%',goal_dir:'up',status:'active',author:'executive',sort_order:1},
-      {id:'d2',board_id:'client1',title:'キャンセル率を下げる',body:'',metric_label:'キャンセル率',target_value:'10',current_value:'14',unit:'%',goal_dir:'down',status:'active',author:'executive',sort_order:2}],
+      {id:'d1',board_id:'client1',title:'初回面談からの成約率を今期中に引き上げる',body:'（例）お互いで話し合って決めた目標です。',metric_label:'成約率',target_value:'20',current_value:'16',unit:'%',goal_dir:'up',status:'active',author:'kumiko',sort_order:1},
+      {id:'d2',board_id:'client1',title:'キャンセル率を下げる',body:'',metric_label:'キャンセル率',target_value:'10',current_value:'14',unit:'%',goal_dir:'down',status:'active',author:'kumiko',sort_order:2}],
     nurture_exec_notes:[
-      {id:'n1',board_id:'client1',body:'面談後フォローの精度を最優先でお願いします。翌日連絡の仕組み化を今週中に。',author:'executive',created_at:'2026-07-15T01:00:00Z'},
-      {id:'n2',board_id:'client1',body:'次はLP離脱の改善に着手してほしいです。数字が動いたら共有を。',author:'executive',created_at:'2026-07-14T02:00:00Z'}],
+      {id:'n1',board_id:'client1',body:'面談後フォローの精度を最優先でお願いします。今週中に翌日連絡を仕組み化してほしいです。',author:'executive',kind:'request',created_at:'2026-07-15T01:00:00Z'},
+      {id:'n2',board_id:'client1',body:'進捗の共有ありがとうございます。この調子でお願いします。',author:'executive',kind:'note',created_at:'2026-07-14T02:00:00Z'}],
     nurture_tasks:[
       {id:'t1',board_id:'client1',title:'LT1の配信文を金曜までに送付',owner:'kumiko',status:'todo',memo:'',sort_order:1},
       {id:'t2',board_id:'client1',title:'リッチメニュー画像を用意',owner:'client',status:'done',memo:'',sort_order:2},
-      {id:'t3',board_id:'client1',title:'翌日フォローのテンプレを整備',owner:'kumiko',status:'doing',memo:'役員指示：フォロー漏れ対策',sort_order:3}],
+      {id:'t3',board_id:'client1',title:'翌日フォローのテンプレを整備',owner:'kumiko',status:'doing',memo:'役員依頼：フォロー漏れ対策',sort_order:3}],
     nurture_stuck:[
       {board_id:'client1',owner:'kumiko',content:'LT1配信文を作成中。金曜午前に共有予定（進捗7割）'},
       {board_id:'client1',owner:'client',content:'リッチメニュー画像を確認中。明日までにお戻しします'}],
@@ -1253,7 +1302,7 @@ function makeSB(){
       {id:'v2',board_id:'client1',title:'6月ファネル分析レポート',category:'レポート',url:'https://example.com',summary:'キャンセル率の要因分解と改善提案',delivered_on:'2026-07-02'}]
   };
   let DB; try{ DB=JSON.parse(localStorage.getItem('nurture_demo')); }catch(e){}
-  if(!DB || !DB.nurture_stuck || !DB.nurture_stuck.length || !(DB.nurture_directives&&DB.nurture_directives[1]&&DB.nurture_directives[1].goal_dir)){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem('nurture_demo',JSON.stringify(DB)); }
+  if(!DB || !DB.nurture_exec_notes || !DB.nurture_exec_notes[0] || !DB.nurture_exec_notes[0].kind){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem('nurture_demo',JSON.stringify(DB)); }
   let idc=1; const persist=()=>localStorage.setItem('nurture_demo',JSON.stringify(DB));
   class Q{
     constructor(t){this.t=t;this._op='select';this._f=[];this._row=null;this._single=false;this._maybe=false;this._orders=[];this._head=false;this._conflict=null;}
@@ -1289,7 +1338,7 @@ function makeSB(){
 function switchRole(){ const seq=['kumiko','client','executive']; ROLE=seq[(seq.indexOf(ROLE)+1)%3]; localStorage.setItem('nurture_demo_role',ROLE); paintRole(); }
 (function demoInit(){
   document.getElementById('authGate').classList.add('hide');
-  ROLE = localStorage.getItem('nurture_demo_role') || 'executive';
+  ROLE = localStorage.getItem('nurture_demo_role') || 'kumiko';
   loadAll().then(()=>paintRole());
   setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 4000);
 })();

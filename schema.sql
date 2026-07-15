@@ -104,6 +104,7 @@ CREATE TABLE IF NOT EXISTS nurture_exec_notes (
   board_id    TEXT NOT NULL DEFAULT 'client1',
   body        TEXT NOT NULL,
   author      TEXT DEFAULT 'executive',
+  kind        TEXT DEFAULT 'note',   -- note=役員からの一言 / request=指摘・依頼事項（強調表示）
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
