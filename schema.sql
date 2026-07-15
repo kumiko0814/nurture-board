@@ -96,6 +96,7 @@ ALTER TABLE nurture_directives ADD COLUMN IF NOT EXISTS metric_label  TEXT DEFAU
 ALTER TABLE nurture_directives ADD COLUMN IF NOT EXISTS target_value  TEXT DEFAULT '';  -- 目標値
 ALTER TABLE nurture_directives ADD COLUMN IF NOT EXISTS current_value TEXT DEFAULT '';  -- 現在値
 ALTER TABLE nurture_directives ADD COLUMN IF NOT EXISTS unit          TEXT DEFAULT '';  -- 単位（%・件 等）
+ALTER TABLE nurture_directives ADD COLUMN IF NOT EXISTS goal_dir      TEXT DEFAULT 'up'; -- up=高い方が良い / down=低い方が良い
 
 -- 8. 役員コメント・指示（役員が要望を記入、担当者が確認）
 CREATE TABLE IF NOT EXISTS nurture_exec_notes (

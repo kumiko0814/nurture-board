@@ -205,8 +205,9 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 .exec-empty{opacity:.8;font-size:.85rem;padding:14px 4px}
 .exec-form{background:rgba(255,255,255,.12);border-radius:14px;padding:14px;margin-top:12px;display:none}
 .exec-form.on{display:block}
-.exec-form input,.exec-form textarea{width:100%;border:none;border-radius:9px;padding:10px 12px;font-family:inherit;
+.exec-form input,.exec-form textarea,.exec-form select{width:100%;border:none;border-radius:9px;padding:10px 12px;font-family:inherit;
   font-size:.88rem;margin-bottom:8px;color:var(--ink)}
+.kpi-dir{font-size:.64rem;font-weight:700;color:var(--muted);margin-left:6px}
 .exec-form textarea{min-height:60px;resize:vertical}
 .exec-form .row2{display:flex;gap:8px;justify-content:flex-end}
 .exec-add-btn{background:#f0c869;color:var(--navy-deep);border:none;border-radius:20px;padding:7px 16px;
@@ -329,7 +330,7 @@ details.rec .rec-body{padding:0 18px 18px}
 </div>
 
 <div class="wrap">
-  <div class="demo-banner"><span><b>デモ版プレビュー</b>｜サンプルデータです。自由に操作できます（実データには影響しません）。右上の「切替」で くみこ／クライアント／役員 の見え方を試せます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
+  <div class="demo-banner"><span><b>デモ版プレビュー</b>｜サンプルデータです（KPIも例です。本番は話し合って自由に入力）。右上の「切替」で くみこ／クライアント／役員 の見え方を試せます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
 
   <!-- ===== HEADER ===== -->
   <header>
@@ -347,10 +348,10 @@ details.rec .rec-body{padding:0 18px 18px}
   <!-- ===== 経営ダッシュボード ===== -->
   <div class="exec-section">
     <div class="exec-head"><h2><span class="exec-badge">経営</span>経営ダッシュボード</h2></div>
-    <div class="exec-desc">注視する数値の「目標と現在値」、および役員からの指示を集約します。担当者はまずここを確認し、追うべき数字と優先事項を揃えてください。</div>
+    <div class="exec-desc">追う指標は役員と現場の話し合いで決めて入力します（成約率・キャンセル率に限らず複数可）。「目標と現在値」で成果を可視化し、役員からの指示もここに集約します。</div>
 
     <div class="exec-block">
-      <div class="exec-block-head"><span>注視KPI（目標と現在値）</span>
+      <div class="exec-block-head"><span>注視KPI（話し合って決めた指標を入力）</span>
         <button class="exec-add-btn" id="dirAddBtn" onclick="toggleDirForm()" style="display:none">＋ KPIを追加</button></div>
       <div class="exec-form" id="dirForm">
         <input id="dirTitle" placeholder="ねらい・見出し（例：初回面談からの成約率を引き上げる）">
@@ -362,6 +363,10 @@ details.rec .rec-body{padding:0 18px 18px}
           <input id="dirTarget" placeholder="目標値（例：20）">
           <input id="dirCurrent" placeholder="現在値（例：16）">
         </div>
+        <select id="dirGoalDir">
+          <option value="up">高い方が良い指標（例：成約率・件数）</option>
+          <option value="down">低い方が良い指標（例：キャンセル率・離脱率）</option>
+        </select>
         <textarea id="dirBody" placeholder="背景・意図（任意）"></textarea>
         <div class="row2">
           <button class="btn ghost" onclick="toggleDirForm()">キャンセル</button>
@@ -369,7 +374,7 @@ details.rec .rec-body{padding:0 18px 18px}
         </div>
       </div>
       <div class="kpi-grid" id="dirList"></div>
-      <div class="exec-empty" id="dirEmpty">まだKPIの登録がありません。</div>
+      <div class="exec-empty" id="dirEmpty">まだKPIの登録がありません。役員と話し合って決めた指標（成約率・キャンセル率・件数など、いくつでも）を「＋ KPIを追加」から入力してください。</div>
     </div>
 
     <div class="exec-block">
@@ -408,29 +413,46 @@ details.rec .rec-body{padding:0 18px 18px}
     </div>
   </div>
 
-  <!-- ===== 課題トラッカー（ボトルネック） ===== -->
+  <!-- ===== 相互メモ欄（今の作業・進捗） ===== -->
   <div class="section">
-    <h2>課題トラッカー <span class="tag">発生 → 解決の軌跡</span></h2>
-    <div class="desc">ボトルネックを「対応中／解決済み」で管理します。解決時に「どう解決したか」を記録すると、解決の軌跡が資産として残ります。</div>
-    <button class="mini-add" onclick="toggleIssueForm()">＋ 課題を追加</button>
-    <div class="subform" id="issueForm">
-      <input id="issueTitle" placeholder="課題・ボトルネックの見出し（例：面談後のフォロー漏れが多い）">
-      <textarea id="issueDetail" placeholder="詳細・状況（任意）"></textarea>
+    <h2>相互メモ <span class="tag">今の作業・進捗をリアルタイム共有</span></h2>
+    <div class="desc">「今どんな作業をしているか」「どのくらい進んでいるか」を書いておくと、相手にリアルタイムで共有されます（自動保存）。困っている点もここに書けます。</div>
+    <div class="stuck-grid">
+      <div class="stuck kumiko">
+        <label>くみこ ｜ 今の作業・進捗</label>
+        <textarea id="stuckK" oninput="stuckDirty('kumiko')" placeholder="例）LT1配信文を作成中。金曜午前に共有予定（進捗7割）"></textarea>
+        <div class="saved" id="savedK"></div>
+      </div>
+      <div class="stuck client">
+        <label><span class="clientLabel">クライアント</span> ｜ 今の作業・進捗</label>
+        <textarea id="stuckC" oninput="stuckDirty('client')" placeholder="例）リッチメニュー画像を確認中。明日までに戻します"></textarea>
+        <div class="saved" id="savedC"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 成果物ログ（常時表示） ===== -->
+  <div class="section">
+    <h2>成果物ログ <span class="tag">弊社提出物の記録</span><span class="rec-cnt" id="delivCnt" style="margin-left:8px"></span></h2>
+    <div class="desc">提出したレポート・バナー・LP・配信文などを蓄積します。都度ファイルを探さずに、ここから過去の提出物を追えます。</div>
+    <button class="mini-add" onclick="toggleDelivForm()">＋ 成果物を追加</button>
+    <div class="subform" id="delivForm">
+      <input id="delivTitle" placeholder="タイトル（例：7月勉強会 募集バナー 3種）">
+      <select id="delivCat">
+        <option value="">種別を選択</option>
+        <option>レポート</option><option>バナー</option><option>LP</option>
+        <option>配信文</option><option>資料</option><option>議事録</option><option>その他</option>
+      </select>
+      <input id="delivUrl" placeholder="リンク（Google Drive / Docs 等のURL・任意）">
+      <textarea id="delivSummary" placeholder="概要・補足（任意）"></textarea>
+      <input id="delivDate" type="date">
       <div class="row2">
-        <button class="btn ghost" onclick="toggleIssueForm()">キャンセル</button>
-        <button class="btn" onclick="addIssue()">登録</button>
+        <button class="btn ghost" onclick="toggleDelivForm()">キャンセル</button>
+        <button class="btn" onclick="addDeliverable()">登録</button>
       </div>
     </div>
-    <div class="issue-cols" style="margin-top:12px">
-      <div class="issue-col active">
-        <div class="issue-colhead"><span>対応中</span><span class="cnt" id="issueOpenCnt">0</span></div>
-        <div class="issue-list" id="issueOpenList"></div>
-      </div>
-      <div class="issue-col resolved">
-        <div class="issue-colhead"><span>解決済み</span><span class="cnt" id="issueResCnt">0</span></div>
-        <div class="issue-list" id="issueResList"></div>
-      </div>
-    </div>
+    <ul class="deliv-list" id="delivList" style="margin-top:12px;max-height:440px;overflow:auto"></ul>
+    <div class="empty-note" id="delivEmpty">まだ成果物の記録はありません。</div>
   </div>
 
   <!-- ===== 記録（折りたたみ・普段は閉じておく） ===== -->
@@ -457,29 +479,6 @@ details.rec .rec-body{padding:0 18px 18px}
     </div>
   </details>
 
-  <details class="rec">
-    <summary>成果物ログ（弊社提出物）<span class="rec-cnt" id="delivCnt"></span></summary>
-    <div class="rec-body">
-      <button class="mini-add" onclick="toggleDelivForm()">＋ 成果物を追加</button>
-      <div class="subform" id="delivForm">
-        <input id="delivTitle" placeholder="タイトル（例：7月勉強会 募集バナー 3種）">
-        <select id="delivCat">
-          <option value="">種別を選択</option>
-          <option>レポート</option><option>バナー</option><option>LP</option>
-          <option>配信文</option><option>資料</option><option>議事録</option><option>その他</option>
-        </select>
-        <input id="delivUrl" placeholder="リンク（Google Drive / Docs 等のURL・任意）">
-        <textarea id="delivSummary" placeholder="概要・補足（任意）"></textarea>
-        <input id="delivDate" type="date">
-        <div class="row2">
-          <button class="btn ghost" onclick="toggleDelivForm()">キャンセル</button>
-          <button class="btn" onclick="addDeliverable()">登録</button>
-        </div>
-      </div>
-      <ul class="deliv-list" id="delivList" style="margin-top:12px"></ul>
-      <div class="empty-note" id="delivEmpty">まだ成果物の記録はありません。</div>
-    </div>
-  </details>
 
   <!-- ===== status ===== -->
   <div class="statusbar">
@@ -815,18 +814,22 @@ function renderDirectives(){
     const el=document.createElement('div');
     el.className='kpi'+(d.status==='achieved'?' achieved':'');
     const tgt=numOr(d.target_value), cur=numOr(d.current_value);
+    const down=d.goal_dir==='down';
     const u=d.unit?('<span class="u">'+esc(d.unit)+'</span>'):'';
     let html='';
-    if(d.metric_label) html+='<div class="kpi-label">'+esc(d.metric_label)+'</div>';
+    if(d.metric_label) html+='<div class="kpi-label">'+esc(d.metric_label)+(down?'<span class="kpi-dir">▼低いほど良い</span>':'')+'</div>';
     if(cur!==null || tgt!==null){
       html+='<div class="kpi-nums">'+
         '<span class="cur">'+(cur!==null?esc(d.current_value):'—')+(cur!==null?u:'')+'</span>'+
         '<span class="sep">/ 目標</span>'+
         '<span class="tgt">'+(tgt!==null?esc(d.target_value):'—')+(tgt!==null?u:'')+'</span></div>';
       if(cur!==null && tgt!==null && tgt!==0){
-        let pct=Math.round(cur/tgt*100); pct=Math.max(0,Math.min(100,pct));
-        html+='<div class="kpi-bar'+(pct>=100?' done':'')+'"><i style="width:'+pct+'%"></i></div>'+
-              '<div class="kpi-pct">達成度 '+pct+'%</div>';
+        let pct, done;
+        if(down){ if(cur<=tgt){pct=100;done=true;} else {pct=Math.round(tgt/cur*100);done=false;} }
+        else    { pct=Math.round(cur/tgt*100); done=cur>=tgt; }
+        pct=Math.max(0,Math.min(100,pct));
+        html+='<div class="kpi-bar'+(done?' done':'')+'"><i style="width:'+pct+'%"></i></div>'+
+              '<div class="kpi-pct">達成度 '+pct+'%'+(done?'（目標達成）':'')+'</div>';
       }
     }
     html+='<div class="kpi-title">'+esc(d.title)+'</div>';
@@ -850,11 +853,13 @@ async function addDirective(){
   if(!title){toast('見出しを入力してください');return;}
   const row={board_id:BID,title,body:g('dirBody'),metric_label:g('dirMetricLabel'),
     target_value:g('dirTarget'),current_value:g('dirCurrent'),unit:g('dirUnit'),
+    goal_dir:document.getElementById('dirGoalDir').value,
     author:ROLE,status:'active',sort_order:Date.now()};
   const {data,error}=await sb.from('nurture_directives').insert(row).select().single();
   if(error){toast('登録エラー');return;}
   DIRECTIVES.push(data);
   ['dirTitle','dirBody','dirMetricLabel','dirTarget','dirCurrent','dirUnit'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('dirGoalDir').value='up';
   document.getElementById('dirForm').classList.remove('on');
   renderDirectives(); toast('登録しました');
 }
@@ -871,8 +876,9 @@ async function editDirective(id){
   const target=prompt('目標値',d.target_value||''); if(target===null)return;
   const current=prompt('現在値',d.current_value||''); if(current===null)return;
   const unit=prompt('単位（例：%・件）',d.unit||''); if(unit===null)return;
+  const dir=prompt('この指標は「高い方が良い」なら up、「低い方が良い（キャンセル率など）」なら down と入力',d.goal_dir||'up'); if(dir===null)return;
   const body=prompt('背景・意図（任意）',d.body||''); if(body===null)return;
-  await patchRow('nurture_directives',DIRECTIVES,id,{title:title.trim(),metric_label:label.trim(),target_value:target.trim(),current_value:current.trim(),unit:unit.trim(),body:body.trim()},renderDirectives);
+  await patchRow('nurture_directives',DIRECTIVES,id,{title:title.trim(),metric_label:label.trim(),target_value:target.trim(),current_value:current.trim(),unit:unit.trim(),goal_dir:(dir.trim()==='down'?'down':'up'),body:body.trim()},renderDirectives);
 }
 async function toggleDirAchieved(id){
   const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
@@ -1227,29 +1233,27 @@ function makeSB(){
   const SEED={
     nurture_meta:[{board_id:'client1',title:'○○株式会社 ナーチャリング進行ボード',client_label:'○○株式会社'}],
     nurture_directives:[
-      {id:'d1',board_id:'client1',title:'初回面談からの成約率を今期中に引き上げる',body:'今期の最重要テーマ。現場は面談後フォローの精度向上に集中してください。',metric_label:'成約率',target_value:'20',current_value:'16',unit:'%',status:'active',author:'executive',sort_order:1},
-      {id:'d2',board_id:'client1',title:'月間の成約件数を安定させる',body:'',metric_label:'月間成約数',target_value:'20',current_value:'14',unit:'件',status:'active',author:'executive',sort_order:2}],
+      {id:'d1',board_id:'client1',title:'初回面談からの成約率を今期中に引き上げる',body:'（例）役員と話し合って決めた指標です。',metric_label:'成約率',target_value:'20',current_value:'16',unit:'%',goal_dir:'up',status:'active',author:'executive',sort_order:1},
+      {id:'d2',board_id:'client1',title:'キャンセル率を下げる',body:'',metric_label:'キャンセル率',target_value:'10',current_value:'14',unit:'%',goal_dir:'down',status:'active',author:'executive',sort_order:2}],
     nurture_exec_notes:[
       {id:'n1',board_id:'client1',body:'面談後フォローの精度を最優先でお願いします。翌日連絡の仕組み化を今週中に。',author:'executive',created_at:'2026-07-15T01:00:00Z'},
-      {id:'n2',board_id:'client1',body:'次はLP離脱の課題に着手してほしいです。数字が動いたら共有を。',author:'executive',created_at:'2026-07-14T02:00:00Z'}],
+      {id:'n2',board_id:'client1',body:'次はLP離脱の改善に着手してほしいです。数字が動いたら共有を。',author:'executive',created_at:'2026-07-14T02:00:00Z'}],
     nurture_tasks:[
       {id:'t1',board_id:'client1',title:'LT1の配信文を金曜までに送付',owner:'kumiko',status:'todo',memo:'',sort_order:1},
       {id:'t2',board_id:'client1',title:'リッチメニュー画像を用意',owner:'client',status:'done',memo:'',sort_order:2},
       {id:'t3',board_id:'client1',title:'翌日フォローのテンプレを整備',owner:'kumiko',status:'doing',memo:'役員指示：フォロー漏れ対策',sort_order:3}],
+    nurture_stuck:[
+      {board_id:'client1',owner:'kumiko',content:'LT1配信文を作成中。金曜午前に共有予定（進捗7割）'},
+      {board_id:'client1',owner:'client',content:'リッチメニュー画像を確認中。明日までにお戻しします'}],
     nurture_topics:[
       {id:'p1',board_id:'client1',content:'初回配信は夜21時固定と決定',author:'kumiko',created_at:'2026-07-14T12:00:00Z'},
       {id:'p2',board_id:'client1',content:'面談リマインドは2通に削減する方針で合意',author:'client',created_at:'2026-07-13T09:00:00Z'}],
-    nurture_stuck:[],
-    nurture_issues:[
-      {id:'i1',board_id:'client1',title:'面談後のフォロー漏れが発生している',detail:'翌日連絡が属人化しており抜けが出る',status:'in_progress',owner:'kumiko',resolution:'',opened_on:'2026-07-10',resolved_on:null,sort_order:1},
-      {id:'i3',board_id:'client1',title:'配信過多によるブロック増加',detail:'',status:'open',owner:'kumiko',resolution:'',opened_on:'2026-07-12',resolved_on:null,sort_order:2},
-      {id:'i2',board_id:'client1',title:'LPファーストビューの離脱が高い',detail:'',status:'resolved',owner:'client',resolution:'事例訴求に差し替え、離脱率を12ポイント改善',opened_on:'2026-06-20',resolved_on:'2026-07-05',sort_order:3}],
     nurture_deliverables:[
       {id:'v1',board_id:'client1',title:'7月勉強会 募集バナー 3種',category:'バナー',url:'https://example.com',summary:'税金フック版／メルカリ版／QA版',delivered_on:'2026-07-11'},
       {id:'v2',board_id:'client1',title:'6月ファネル分析レポート',category:'レポート',url:'https://example.com',summary:'キャンセル率の要因分解と改善提案',delivered_on:'2026-07-02'}]
   };
   let DB; try{ DB=JSON.parse(localStorage.getItem('nurture_demo')); }catch(e){}
-  if(!DB || !DB.nurture_exec_notes){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem('nurture_demo',JSON.stringify(DB)); }
+  if(!DB || !DB.nurture_stuck || !DB.nurture_stuck.length || !(DB.nurture_directives&&DB.nurture_directives[1]&&DB.nurture_directives[1].goal_dir)){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem('nurture_demo',JSON.stringify(DB)); }
   let idc=1; const persist=()=>localStorage.setItem('nurture_demo',JSON.stringify(DB));
   class Q{
     constructor(t){this.t=t;this._op='select';this._f=[];this._row=null;this._single=false;this._maybe=false;this._orders=[];this._head=false;this._conflict=null;}
@@ -1282,12 +1286,7 @@ function makeSB(){
   }
   return { from:t=>new Q(t), auth:{ getSession:async()=>({data:{session:{user:{email:'demo'}}}}), onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}), signOut:async()=>{} } };
 }
-function switchRole(){
-  const seq=['kumiko','client','executive'];
-  ROLE=seq[(seq.indexOf(ROLE)+1)%3];
-  localStorage.setItem('nurture_demo_role',ROLE);
-  paintRole();
-}
+function switchRole(){ const seq=['kumiko','client','executive']; ROLE=seq[(seq.indexOf(ROLE)+1)%3]; localStorage.setItem('nurture_demo_role',ROLE); paintRole(); }
 (function demoInit(){
   document.getElementById('authGate').classList.add('hide');
   ROLE = localStorage.getItem('nurture_demo_role') || 'executive';
