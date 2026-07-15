@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ナーチャリング共有ボード</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase_config.js"></script>
+<style>
+:root{
+  --pink:#F5A6C8; --pink-deep:#E07AAA; --pink-soft:#fbeef1; --pink-line:#f2cfdd;
+  --navy:#26405f; --navy-deep:#1d3149;
+  --blue:#8FC0EC; --blue-mid:#5f97be; --blue-soft:#f4f9fd; --blue-line:#cdd6e0;
+  --purple:#B98BEA; --purple-soft:#efe6fb;
+  --ink:#3a4657; --muted:#8a97a8; --ok:#5FA85A; --line:#e4ebf3;
+  --shadow:0 6px 22px rgba(38,64,95,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",sans-serif;
+  color:var(--ink);
+  background:linear-gradient(160deg,#f4f9fd 0%,#fbeef1 100%);
+  min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.6;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 80px}
+
+/* ---------- auth gate ---------- */
+.authgate{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#f4f9fd,#fbeef1);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.authgate.hide{display:none}
+.authcard{background:#fff;border-radius:24px;box-shadow:0 12px 40px rgba(38,64,95,.16);
+  max-width:400px;width:100%;padding:34px 28px;text-align:center}
+.authlock{font-size:2.4rem;margin-bottom:6px}
+.authsent{font-size:2.6rem;margin-bottom:10px}
+.authcard h2{color:#26405f;font-size:1.2rem;margin-bottom:12px}
+.authlead{font-size:.86rem;color:#5a6577;margin-bottom:16px;line-height:1.7}
+.authcard input{width:100%;border:1.5px solid #cdd6e0;border-radius:12px;padding:13px 15px;
+  font-size:1rem;font-family:inherit;margin-bottom:12px;text-align:center}
+.authcard input:focus{outline:none;border-color:#F5A6C8}
+.authbtn{width:100%;justify-content:center}
+.authmsg{font-size:.8rem;margin-top:12px;min-height:18px}
+.authmsg.err{color:#E07AAA;font-weight:700}
+.authmsg.ok{color:#5FA85A;font-weight:700}
+.logoutbtn{background:none;border:none;color:#8a97a8;cursor:pointer;text-decoration:underline;font-size:.75rem}
+
+/* ---------- header ---------- */
+header{
+  background:linear-gradient(120deg,var(--navy) 0%,var(--blue-mid) 55%,var(--pink-deep) 130%);
+  border-radius:22px;padding:22px 24px;color:#fff;box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;
+  background:radial-gradient(circle,rgba(255,255,255,.22),transparent 70%);}
+.h-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.h-title{font-size:1.5rem;font-weight:800;letter-spacing:.02em;line-height:1.3}
+.h-title .edit{font-size:.72rem;opacity:.75;cursor:pointer;margin-left:8px;border:1px solid rgba(255,255,255,.4);
+  padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.h-sub{font-size:.82rem;opacity:.9;margin-top:6px}
+.who{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.16);
+  padding:6px 8px 6px 12px;border-radius:30px;font-size:.8rem}
+.who b{font-weight:700}
+.who button{border:none;background:#fff;color:var(--navy);font-weight:700;border-radius:20px;
+  padding:5px 12px;cursor:pointer;font-size:.78rem}
+
+/* ---------- progress bar ---------- */
+.progress{margin-top:16px;background:rgba(255,255,255,.22);border-radius:30px;height:16px;overflow:hidden;position:relative}
+.progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),#ffd36e);border-radius:30px;transition:width .5s}
+.progress span{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700}
+
+/* ---------- cards / sections ---------- */
+.section{background:#fff;border-radius:18px;padding:18px 18px 16px;margin-top:18px;box-shadow:var(--shadow)}
+.section > h2{font-size:1.02rem;color:var(--navy);display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.section > h2 .tag{font-size:.68rem;font-weight:600;background:var(--blue-soft);color:var(--blue-mid);
+  padding:2px 10px;border-radius:20px;border:1px solid var(--blue-line)}
+.section .desc{font-size:.78rem;color:var(--muted);margin-bottom:12px}
+
+/* ---------- two person todo ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.cols{grid-template-columns:1fr}}
+.col{border:1.5px solid var(--line);border-radius:16px;overflow:hidden;background:#fff}
+.col.kumiko{border-color:var(--pink-line)}
+.col.client{border-color:var(--blue-line)}
+.col-head{padding:11px 14px;font-weight:800;font-size:.92rem;display:flex;justify-content:space-between;align-items:center}
+.col.kumiko .col-head{background:var(--pink-soft);color:var(--pink-deep)}
+.col.client .col-head{background:var(--blue-soft);color:var(--blue-mid)}
+.col-head .cnt{font-size:.72rem;font-weight:700;background:#fff;border-radius:20px;padding:2px 10px}
+.mine-badge{font-size:.62rem;background:#fff;color:var(--navy);border-radius:20px;padding:1px 8px;margin-left:6px;border:1px solid currentColor}
+.tasklist{list-style:none;padding:8px;min-height:60px}
+.task{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:12px;margin-bottom:6px;
+  background:#fbfdff;border:1px solid var(--line);transition:.15s}
+.task:hover{border-color:var(--blue)}
+.task.done{opacity:.55;background:#f5f7f9}
+.task.done .t-title{text-decoration:line-through;color:var(--muted)}
+.check{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--blue);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#fff;background:#fff;transition:.15s;margin-top:1px}
+.col.kumiko .check{border-color:var(--pink-deep)}
+.task.done .check{background:var(--ok);border-color:var(--ok)}
+.task.doing .check{background:#ffc94d;border-color:#f0ab00}
+.t-body{flex:1;min-width:0}
+.t-title{font-size:.9rem;word-break:break-word;cursor:text}
+.t-memo{font-size:.75rem;color:var(--pink-deep);margin-top:4px;background:var(--pink-soft);
+  padding:5px 9px;border-radius:8px;display:inline-block;max-width:100%;word-break:break-word}
+.t-memo.empty{color:var(--muted);background:transparent;padding:0;cursor:pointer;font-size:.72rem}
+.t-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.t-actions button{font-size:.68rem;border:1px solid var(--line);background:#fff;color:var(--muted);
+  border-radius:16px;padding:3px 9px;cursor:pointer}
+.t-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
+.t-actions .del:hover{border-color:var(--pink-deep);color:var(--pink-deep)}
+.addrow{display:flex;gap:6px;padding:8px}
+.addrow input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.85rem;font-family:inherit}
+.addrow input:focus{outline:none;border-color:var(--blue)}
+.addrow button{border:none;border-radius:12px;padding:8px 14px;font-weight:700;font-size:.82rem;cursor:pointer;color:#fff}
+.col.kumiko .addrow button{background:var(--pink-deep)}
+.col.client .addrow button{background:var(--blue-mid)}
+
+/* ---------- stuck memos ---------- */
+.stuck-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.stuck-grid{grid-template-columns:1fr}}
+.stuck{border-radius:14px;padding:14px;border:1.5px dashed}
+.stuck.kumiko{background:var(--pink-soft);border-color:var(--pink)}
+.stuck.client{background:var(--blue-soft);border-color:var(--blue)}
+.stuck label{font-size:.8rem;font-weight:800;display:block;margin-bottom:7px}
+.stuck.kumiko label{color:var(--pink-deep)}
+.stuck.client label{color:var(--blue-mid)}
+.stuck textarea{width:100%;border:none;background:rgba(255,255,255,.7);border-radius:10px;padding:10px;
+  font-family:inherit;font-size:.85rem;resize:vertical;min-height:70px;color:var(--ink)}
+.stuck textarea:focus{outline:2px solid rgba(0,0,0,.06)}
+.stuck .saved{font-size:.68rem;color:var(--muted);margin-top:4px;height:14px}
+
+/* ---------- paste / topics ---------- */
+.paste-box{width:100%;border:1.5px solid var(--blue-line);border-radius:14px;padding:12px;font-family:inherit;
+  font-size:.88rem;min-height:90px;resize:vertical;background:var(--blue-soft)}
+.paste-box:focus{outline:none;border-color:var(--blue)}
+.paste-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.btn{border:none;border-radius:14px;padding:11px 20px;font-weight:800;font-size:.9rem;cursor:pointer;color:#fff;
+  background:linear-gradient(120deg,var(--purple),var(--pink-deep));box-shadow:0 4px 14px rgba(224,122,170,.35)}
+.btn:hover{filter:brightness(1.04)}
+.btn.ghost{background:#fff;color:var(--blue-mid);border:1.5px solid var(--blue-line);box-shadow:none}
+.hint{font-size:.74rem;color:var(--muted)}
+.topic-log{list-style:none;margin-top:6px;max-height:280px;overflow:auto}
+.topic-log li{padding:10px 12px;border-left:3px solid var(--purple);background:#faf8ff;border-radius:0 10px 10px 0;
+  margin-bottom:6px;font-size:.84rem;position:relative}
+.topic-log li .meta{font-size:.68rem;color:var(--muted);margin-top:3px;display:flex;justify-content:space-between}
+.topic-log li .tdel{cursor:pointer;color:var(--muted)}
+
+/* ---------- preview modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(29,49,73,.5);display:none;align-items:center;justify-content:center;
+  padding:16px;z-index:50}
+.overlay.on{display:flex}
+.modal{background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:22px;box-shadow:var(--shadow)}
+.modal h3{color:var(--navy);margin-bottom:4px}
+.modal .desc{font-size:.8rem;color:var(--muted);margin-bottom:14px}
+.pv-item{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;margin-bottom:7px}
+.pv-item.istopic{background:var(--purple-soft)}
+.pv-item input.pv-title{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.85rem;font-family:inherit}
+.pv-item select{border:1px solid var(--line);border-radius:8px;padding:7px;font-size:.8rem;font-family:inherit}
+.pv-item .rm{cursor:pointer;color:var(--muted);font-size:1.1rem;padding:0 4px}
+.pv-kind{font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.pv-kind.task{background:var(--pink-soft);color:var(--pink-deep)}
+.pv-kind.topic{background:var(--purple-soft);color:var(--purple)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+
+/* settings modal */
+.setfield{margin-bottom:16px}
+.setfield label{display:block;font-size:.85rem;font-weight:800;color:var(--navy);margin-bottom:6px}
+.setfield label .req{font-size:.65rem;font-weight:700;background:var(--pink-soft);color:var(--pink-deep);padding:1px 8px;border-radius:20px;margin-left:6px}
+.setfield input{width:100%;border:1.5px solid var(--blue-line);border-radius:12px;padding:11px 13px;font-size:.95rem;font-family:inherit}
+.setfield input:focus{outline:none;border-color:var(--pink)}
+.setfield .fhint{font-size:.72rem;color:var(--muted);margin-top:5px}
+.rolepick{display:flex;gap:10px;flex-wrap:wrap}
+.rolebtn{flex:1;min-width:130px;display:flex;align-items:center;gap:8px;border:1.5px solid var(--blue-line);border-radius:12px;padding:12px 14px;cursor:pointer;font-weight:700;font-size:.9rem;color:var(--ink);transition:.15s}
+.rolebtn:has(input:checked){border-color:var(--pink);background:var(--pink-soft);color:var(--pink-deep)}
+.rolebtn input{accent-color:var(--pink-deep)}
+
+/* ---------- footer / status ---------- */
+.statusbar{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:22px;font-size:.75rem;color:var(--muted);flex-wrap:wrap}
+.dot{width:9px;height:9px;border-radius:50%;background:#c9d3df}
+.dot.ok{background:var(--ok)}.dot.err{background:var(--pink-deep)}
+.linkbtn{background:none;border:none;color:var(--blue-mid);cursor:pointer;text-decoration:underline;font-size:.75rem}
+.empty-note{text-align:center;color:var(--muted);font-size:.8rem;padding:14px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;
+  padding:12px 22px;border-radius:30px;font-size:.85rem;font-weight:600;opacity:0;pointer-events:none;transition:.3s;z-index:60;box-shadow:var(--shadow)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- 経営セクション（役員） ---------- */
+.exec-section{background:linear-gradient(125deg,var(--navy-deep),#37597f 70%,#4f6f92);color:#fff;
+  border-radius:20px;padding:20px;margin-top:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.exec-section::after{content:"";position:absolute;right:-30px;bottom:-40px;width:150px;height:150px;
+  background:radial-gradient(circle,rgba(240,200,105,.18),transparent 70%)}
+.exec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.exec-head h2{color:#fff;font-size:1.05rem;display:flex;align-items:center;gap:10px;margin:0}
+.exec-badge{background:#f0c869;color:var(--navy-deep);font-size:.66rem;font-weight:800;padding:3px 11px;border-radius:20px;letter-spacing:.03em}
+.exec-desc{font-size:.78rem;opacity:.82;margin:8px 0 4px}
+.directive{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:14px;
+  padding:14px 16px;margin-top:12px;position:relative}
+.directive.achieved{opacity:.62}
+.directive .d-title{font-weight:800;font-size:.98rem;line-height:1.5;padding-right:60px}
+.directive .d-body{font-size:.85rem;opacity:.92;margin-top:6px;white-space:pre-wrap;line-height:1.7}
+.directive .d-metric{margin-top:10px;background:#f0c869;color:var(--navy-deep);font-weight:800;font-size:.86rem;
+  padding:7px 14px;border-radius:9px;display:inline-block}
+.directive .d-metric .lbl{font-size:.66rem;font-weight:700;opacity:.7;display:block;margin-bottom:1px}
+.directive .d-actions{position:absolute;top:12px;right:12px;display:flex;gap:6px}
+.directive .d-actions button{font-size:.66rem;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);
+  color:#fff;border-radius:14px;padding:2px 9px;cursor:pointer}
+.exec-empty{opacity:.8;font-size:.85rem;padding:14px 4px}
+.exec-form{background:rgba(255,255,255,.12);border-radius:14px;padding:14px;margin-top:12px;display:none}
+.exec-form.on{display:block}
+.exec-form input,.exec-form textarea{width:100%;border:none;border-radius:9px;padding:10px 12px;font-family:inherit;
+  font-size:.88rem;margin-bottom:8px;color:var(--ink)}
+.exec-form textarea{min-height:60px;resize:vertical}
+.exec-form .row2{display:flex;gap:8px;justify-content:flex-end}
+.exec-add-btn{background:#f0c869;color:var(--navy-deep);border:none;border-radius:20px;padding:7px 16px;
+  font-weight:800;font-size:.8rem;cursor:pointer}
+.exec-viewonly{font-size:.72rem;opacity:.7;margin-top:10px}
+
+/* ---------- 課題トラッカー ---------- */
+.issue-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.issue-cols{grid-template-columns:1fr}}
+.issue-col{border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+.issue-col.active{border-color:#f0ab00}
+.issue-col.resolved{border-color:var(--ok)}
+.issue-colhead{padding:10px 14px;font-weight:800;font-size:.88rem;display:flex;justify-content:space-between;align-items:center}
+.issue-col.active .issue-colhead{background:#fff6e6;color:#b8862d}
+.issue-col.resolved .issue-colhead{background:#eef8ee;color:#3d7a3a}
+.issue-list{padding:8px;min-height:50px}
+.issue-card{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:7px}
+.issue-card .i-title{font-size:.9rem;font-weight:700;word-break:break-word}
+.issue-card .i-detail{font-size:.78rem;color:var(--muted);margin-top:4px;white-space:pre-wrap}
+.issue-card .i-badge{font-size:.64rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-right:6px}
+.i-badge.open{background:#fde7e7;color:#c0564a}
+.i-badge.in_progress{background:#fff2d6;color:#b8862d}
+.i-res{margin-top:8px;background:#eef8ee;border-left:3px solid var(--ok);border-radius:0 8px 8px 0;padding:7px 10px;font-size:.78rem;color:#3d7a3a;white-space:pre-wrap}
+.i-res .lbl{font-weight:800;font-size:.68rem;display:block;margin-bottom:2px}
+.i-meta{font-size:.68rem;color:var(--muted);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap}
+.i-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.i-actions button{font-size:.68rem;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:14px;padding:3px 10px;cursor:pointer}
+.i-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
+.i-actions .res:hover{border-color:var(--ok);color:var(--ok)}
+.i-actions .del:hover{border-color:var(--pink-deep);color:var(--pink-deep)}
+
+/* ---------- 成果物ログ ---------- */
+.deliv-list{list-style:none}
+.deliv-item{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:7px}
+.deliv-item .d-date{font-size:.72rem;color:var(--muted);white-space:nowrap;padding-top:2px;min-width:74px}
+.deliv-item .d-main{flex:1;min-width:0}
+.deliv-item .d-t{font-size:.9rem;font-weight:700}
+.deliv-item .d-t a{color:var(--blue-mid);text-decoration:none}
+.deliv-item .d-t a:hover{text-decoration:underline}
+.deliv-item .d-cat{font-size:.64rem;font-weight:700;background:var(--purple-soft);color:var(--purple);padding:2px 9px;border-radius:20px;margin-left:8px}
+.deliv-item .d-sum{font-size:.78rem;color:var(--muted);margin-top:3px}
+.deliv-item .d-del{color:var(--muted);cursor:pointer;font-size:.9rem}
+.subform{background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:12px;padding:12px;margin-top:10px;display:none}
+.subform.on{display:block}
+.subform input,.subform textarea,.subform select{width:100%;border:1.5px solid var(--blue-line);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:.85rem;margin-bottom:8px}
+.subform .row2{display:flex;gap:8px;justify-content:flex-end}
+.mini-add{border:1px dashed var(--blue-line);background:#fff;color:var(--blue-mid);border-radius:12px;padding:8px 16px;font-weight:700;font-size:.82rem;cursor:pointer}
+
+/* diagnostics */
+.diag{font-size:.8rem;line-height:1.8}
+.diag div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:4px 0}
+.diag .g{color:var(--ok);font-weight:700}.diag .r{color:var(--pink-deep);font-weight:700}
+
+.demo-banner{background:#fff4d6;border:1px solid #f0c869;color:#8a6d1f;border-radius:12px;padding:9px 14px;font-size:.78rem;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.demo-banner b{color:#6f5716}
+.demo-banner button{border:1px solid #d9b24a;background:#fff;color:#8a6d1f;border-radius:20px;padding:4px 12px;font-size:.74rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- ===== ログインゲート（許可アドレスのみ） ===== -->
+<div id="authGate" class="authgate hide">
+  <div class="authcard">
+    <h2>ナーチャリング共有ボード</h2>
+    <p class="authlead">許可されたメールアドレスの方のみご利用いただけます。<br>ご登録のメールアドレスをご入力ください。</p>
+    <div id="authStep1">
+      <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"
+        onkeydown="if(event.key==='Enter')sendMagic()">
+      <button class="btn authbtn" id="authSendBtn" onclick="sendMagic()">ログイン用リンクを送信</button>
+    </div>
+    <div id="authStep2" style="display:none">
+      <p class="authlead"><b id="sentTo"></b> 宛に<br><b>ログイン用リンク</b>を送信しました。</p>
+      <p class="authlead">メールを開き、記載のリンクをタップするとログインできます。<br><span class="hint">同じブラウザで開くと確実です。届かない場合は迷惑メールフォルダもご確認ください。</span></p>
+      <button class="btn ghost" onclick="resetAuth()">戻る</button>
+    </div>
+    <div id="authMsg" class="authmsg"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="demo-banner"><span><b>デモ版プレビュー</b>｜サンプルデータです。自由に操作できます（実データには影響しません）。右上の「切替」で くみこ／クライアント／役員 の見え方を試せます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div class="h-top">
+      <div>
+        <div class="h-title"><span id="boardTitle">ナーチャリング共有ボード</span>
+          <span class="edit" onclick="openSettings(false)">名称を編集</span></div>
+        <div class="h-sub">くみこ ／ <span id="clientLabelSub">クライアント</span>　タスク・課題・議題を相互に共有</div>
+      </div>
+      <div class="who">表示中：<b id="whoName">－</b> <button onclick="switchRole()">切替</button></div>
+    </div>
+    <div class="progress"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
+  </header>
+
+  <!-- ===== 経営セクション（役員） ===== -->
+  <div class="exec-section">
+    <div class="exec-head">
+      <h2><span class="exec-badge">経営</span>経営からの期待・注視指標</h2>
+      <button class="exec-add-btn" id="dirAddBtn" onclick="toggleDirForm()" style="display:none">＋ 期待を追加</button>
+    </div>
+    <div class="exec-desc">役員が期待する成果と「追うべき数値」を明示します。各担当者はここを確認し、現場と経営の認識を揃えてください。</div>
+    <div class="exec-form" id="dirForm">
+      <input id="dirTitle" placeholder="期待・方針の見出し（例：初回面談からの成約率を引き上げる）">
+      <textarea id="dirBody" placeholder="背景・意図・補足（任意）"></textarea>
+      <input id="dirMetric" placeholder="追うべき数値／KPI（例：成約率 15% → 20%、月間20件）">
+      <div class="row2">
+        <button class="btn ghost" onclick="toggleDirForm()">キャンセル</button>
+        <button class="btn" onclick="addDirective()">登録</button>
+      </div>
+    </div>
+    <div id="dirList"></div>
+    <div class="exec-empty" id="dirEmpty">まだ登録がありません。</div>
+    <div class="exec-viewonly" id="dirViewonly" style="display:none">※ この欄の編集は役員のみ可能です（担当者は閲覧のみ）。</div>
+  </div>
+
+  <!-- ===== 議題アップ ===== -->
+  <div class="section">
+    <h2>議題を登録 <span class="tag">貼り付けで半自動仕分け</span></h2>
+    <div class="desc">打ち合わせのメモや議事録のテキストを貼り付けて「仕分け」を押すと、タスクと議題ログに自動で振り分けます。内容は次の画面で修正できます。</div>
+    <textarea id="pasteBox" class="paste-box" placeholder="例）
+・くみこ → LT1の配信文を金曜までに送る
+・◯◯さんはリッチメニューの画像を用意
+今日決めたこと：初回配信は夜21時に固定
+つまずき：ステップ2の分岐条件がまだ曖昧"></textarea>
+    <div class="paste-actions">
+      <button class="btn" onclick="parseAndPreview()">仕分け</button>
+      <button class="btn ghost" onclick="document.getElementById('pasteBox').value=''">クリア</button>
+    </div>
+  </div>
+
+  <!-- ===== ToDo 2人分 ===== -->
+  <div class="section">
+    <h2>タスク一覧 <span class="tag">完了したらチェック</span></h2>
+    <div class="desc">双方の担当を一覧で確認できます。チェックで完了、着手中への切替、タスクごとの補足メモも残せます。</div>
+    <div class="cols">
+      <div class="col kumiko">
+        <div class="col-head"><span>くみこ<span class="mine-badge" id="mineK" style="display:none">あなた</span></span><span class="cnt" id="cntK">0</span></div>
+        <ul class="tasklist" id="listK"></ul>
+        <div class="addrow">
+          <input id="addK" placeholder="くみこのタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('kumiko')">
+          <button onclick="quickAdd('kumiko')">＋</button>
+        </div>
+      </div>
+      <div class="col client">
+        <div class="col-head"><span><span class="clientLabel">クライアント</span><span class="mine-badge" id="mineC" style="display:none">あなた</span></span><span class="cnt" id="cntC">0</span></div>
+        <ul class="tasklist" id="listC"></ul>
+        <div class="addrow">
+          <input id="addC" placeholder="クライアントのタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('client')">
+          <button onclick="quickAdd('client')">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 課題トラッカー（ボトルネック） ===== -->
+  <div class="section">
+    <h2>課題トラッカー <span class="tag">発生 → 解決の軌跡</span></h2>
+    <div class="desc">ボトルネックを「対応中／解決済み」で管理します。解決時に「どう解決したか」を記録すると、解決の軌跡が資産として残ります。</div>
+    <button class="mini-add" onclick="toggleIssueForm()">＋ 課題を追加</button>
+    <div class="subform" id="issueForm">
+      <input id="issueTitle" placeholder="課題・ボトルネックの見出し（例：面談後のフォロー漏れが多い）">
+      <textarea id="issueDetail" placeholder="詳細・状況（任意）"></textarea>
+      <div class="row2">
+        <button class="btn ghost" onclick="toggleIssueForm()">キャンセル</button>
+        <button class="btn" onclick="addIssue()">登録</button>
+      </div>
+    </div>
+    <div class="issue-cols" style="margin-top:12px">
+      <div class="issue-col active">
+        <div class="issue-colhead"><span>対応中</span><span class="cnt" id="issueOpenCnt">0</span></div>
+        <div class="issue-list" id="issueOpenList"></div>
+      </div>
+      <div class="issue-col resolved">
+        <div class="issue-colhead"><span>解決済み</span><span class="cnt" id="issueResCnt">0</span></div>
+        <div class="issue-list" id="issueResList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== つまずき ===== -->
+  <div class="section">
+    <h2>現在の課題 <span class="tag">相互に共有</span></h2>
+    <div class="desc">現在停滞している点を記入しておくと、相手先が先回りで対応できます。内容は自動保存されます。</div>
+    <div class="stuck-grid">
+      <div class="stuck kumiko">
+        <label>くみこの課題</label>
+        <textarea id="stuckK" oninput="stuckDirty('kumiko')" placeholder="例）配信文のトーンについて確認したい点があります"></textarea>
+        <div class="saved" id="savedK"></div>
+      </div>
+      <div class="stuck client">
+        <label><span class="clientLabel">クライアント</span>の課題</label>
+        <textarea id="stuckC" oninput="stuckDirty('client')" placeholder="例）Lステップの分岐設定について相談したい"></textarea>
+        <div class="saved" id="savedC"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 議題ログ ===== -->
+  <div class="section">
+    <h2>議題ログ <span class="tag">協議事項・決定事項</span></h2>
+    <div class="desc">仕分けで「議題」に振り分けた内容がここに時系列で溜まります。</div>
+    <ul class="topic-log" id="topicLog"></ul>
+    <div class="empty-note" id="topicEmpty">まだ議題ログはありません。上の「議題をアップ」から追加できます。</div>
+  </div>
+
+  <!-- ===== 成果物ログ ===== -->
+  <div class="section">
+    <h2>成果物ログ <span class="tag">弊社提出物の記録</span></h2>
+    <div class="desc">提出したレポート・バナー・LP・配信文などを蓄積します。都度ファイルを探さずに、ここから過去の提出物を追えます。</div>
+    <button class="mini-add" onclick="toggleDelivForm()">＋ 成果物を追加</button>
+    <div class="subform" id="delivForm">
+      <input id="delivTitle" placeholder="タイトル（例：7月勉強会 募集バナー 3種）">
+      <select id="delivCat">
+        <option value="">種別を選択</option>
+        <option>レポート</option><option>バナー</option><option>LP</option>
+        <option>配信文</option><option>資料</option><option>議事録</option><option>その他</option>
+      </select>
+      <input id="delivUrl" placeholder="リンク（Google Drive / Docs 等のURL・任意）">
+      <textarea id="delivSummary" placeholder="概要・補足（任意）"></textarea>
+      <input id="delivDate" type="date">
+      <div class="row2">
+        <button class="btn ghost" onclick="toggleDelivForm()">キャンセル</button>
+        <button class="btn" onclick="addDeliverable()">登録</button>
+      </div>
+    </div>
+    <ul class="deliv-list" id="delivList" style="margin-top:12px"></ul>
+    <div class="empty-note" id="delivEmpty">まだ成果物の記録はありません。</div>
+  </div>
+
+  <!-- ===== status ===== -->
+  <div class="statusbar">
+    <span class="dot" id="connDot"></span><span id="connTxt">接続確認中…</span>
+    <button class="linkbtn" onclick="loadAll(true)">↻ 今すぐ更新</button>
+    <button class="linkbtn" onclick="runDiag()">接続診断</button>
+    <span id="lastSync"></span>
+    <span id="authUser"></span>
+    <button class="logoutbtn" onclick="logout()">ログアウト</button>
+  </div>
+</div>
+
+<!-- ===== settings modal (ボード名・クライアント名・役割) ===== -->
+<div class="overlay" id="setOverlay">
+  <div class="modal">
+    <h3>ボードの設定</h3>
+    <div class="desc" id="setHint">このボードの名称と、相手先（クライアント）の表示名をご入力ください。後からいつでも変更できます。</div>
+    <div class="setfield">
+      <label>クライアントの表示名 <span class="req">必須</span></label>
+      <input id="setClient" placeholder="例）○○株式会社 / ○○様" oninput="document.getElementById('roleClientLabel').textContent=this.value.trim()||'クライアント'">
+      <div class="fhint">ボードのクライアント側の表示名に使用されます</div>
+    </div>
+    <div class="setfield">
+      <label>ボードの名称</label>
+      <input id="setTitle" placeholder="例）○○様 ナーチャリング進行ボード">
+      <div class="fhint">未入力の場合は「ナーチャリング共有ボード」になります</div>
+    </div>
+    <div class="setfield">
+      <label>ご利用者の種別</label>
+      <div class="rolepick">
+        <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> くみこ</label>
+        <label class="rolebtn"><input type="radio" name="setRole" value="client"> <span id="roleClientLabel">クライアント</span></label>
+        <label class="rolebtn"><input type="radio" name="setRole" value="executive"> 役員</label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeEl('setOverlay')">キャンセル</button>
+      <button class="btn" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== preview modal ===== -->
+<div class="overlay" id="pvOverlay">
+  <div class="modal">
+    <h3>仕分けプレビュー</h3>
+    <div class="desc">担当（くみこ / クライアント）をご確認のうえ、不要な行は × で削除してください。「議題」はログへ、「タスク」は一覧へ登録されます。</div>
+    <div id="pvList"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closePreview()">キャンセル</button>
+      <button class="btn" onclick="commitPreview()">ボードに登録</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== diagnostics modal ===== -->
+<div class="overlay" id="diagOverlay">
+  <div class="modal">
+    <h3>接続診断</h3>
+    <div class="desc">Supabaseとの接続・各テーブルの存在をチェックします。赤があったら schema.sql を貼り直してください。</div>
+    <div class="diag" id="diagBody">確認中…</div>
+    <div class="modal-actions"><button class="btn" onclick="closeEl('diagOverlay')">閉じる</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 初期化
+// ============================================================
+const BID = SUPABASE_CONFIG.boardId || 'client1';
+let sb = makeSB();
+let ROLE = localStorage.getItem('nurture_role'); // 'kumiko' | 'client'
+let META = { title:'ナーチャリング共有ボード', client_label:'クライアント' };
+let TASKS = [], TOPICS = [], DIRECTIVES = [], ISSUES = [], DELIVS = [];
+let pvData = [];
+function isExec(){ return ROLE==='executive'; }
+function canEditDirectives(){ return ROLE==='executive' || ROLE==='kumiko'; }
+
+// ============================================================
+// 役割（自分はどっち？）
+// ============================================================
+function ensureRole(){
+  paintRole();
+  // 初回：役割が未設定、またはクライアント名が未入力なら設定モーダルを自動で開く
+  const needsSetup = (ROLE!=='kumiko' && ROLE!=='client') || !META.client_label || META.client_label==='クライアント';
+  if (needsSetup) openSettings(true);
+}
+function switchRole(){
+  ROLE = (ROLE === 'kumiko') ? 'client' : 'kumiko';
+  localStorage.setItem('nurture_role', ROLE);
+  paintRole();
+}
+function paintRole(){
+  const name = ROLE==='kumiko' ? 'くみこ' : ROLE==='executive' ? '役員' : META.client_label;
+  document.getElementById('whoName').textContent = name;
+  document.getElementById('mineK').style.display = ROLE==='kumiko' ? '' : 'none';
+  document.getElementById('mineC').style.display = ROLE==='client' ? '' : 'none';
+  // 経営セクションの編集権限（役員・くみこのみ）
+  const canDir = canEditDirectives();
+  const addBtn = document.getElementById('dirAddBtn');
+  if(addBtn) addBtn.style.display = canDir ? '' : 'none';
+  const vo = document.getElementById('dirViewonly');
+  if(vo) vo.style.display = canDir ? 'none' : 'block';
+  if(!canDir){ const f=document.getElementById('dirForm'); if(f) f.classList.remove('on'); }
+  renderDirectives();
+}
+
+// ============================================================
+// メタ（タイトル・クライアント名）
+// ============================================================
+function applyMeta(){
+  document.getElementById('boardTitle').textContent = META.title || 'ナーチャリング共有ボード';
+  document.getElementById('clientLabelSub').textContent = META.client_label || 'クライアント';
+  document.querySelectorAll('.clientLabel').forEach(e=>e.textContent = META.client_label || 'クライアント');
+  document.title = META.title || 'ナーチャリング共有ボード';
+  paintRole();
+}
+function openSettings(first){
+  // 既定値（デフォルトのままなら空欄にして入力を促す）
+  document.getElementById('setTitle').value  = (META.title && META.title!=='ナーチャリング共有ボード') ? META.title : '';
+  document.getElementById('setClient').value = (META.client_label && META.client_label!=='クライアント') ? META.client_label : '';
+  document.getElementById('roleClientLabel').textContent = document.getElementById('setClient').value.trim() || 'クライアント';
+  // 役割ラジオの初期選択
+  document.querySelectorAll('input[name="setRole"]').forEach(r=>{ r.checked = (r.value===ROLE); });
+  document.getElementById('setHint').style.display = first ? 'block' : 'none';
+  document.getElementById('setOverlay').classList.add('on');
+  setTimeout(()=>document.getElementById('setClient').focus(),50);
+}
+async function saveSettings(){
+  const c = document.getElementById('setClient').value.trim();
+  if(!c){ toast('クライアントの表示名を入力してください'); document.getElementById('setClient').focus(); return; }
+  const t = document.getElementById('setTitle').value.trim();
+  META.client_label = c;
+  META.title = t || 'ナーチャリング共有ボード';
+  const r = document.querySelector('input[name="setRole"]:checked');
+  if(r){ ROLE = r.value; localStorage.setItem('nurture_role', ROLE); }
+  applyMeta();
+  if(sb){
+    await sb.from('nurture_meta').upsert({ board_id:BID, title:META.title, client_label:META.client_label, updated_at:new Date().toISOString() });
+  }
+  closeEl('setOverlay');
+  renderTopics();
+  toast('保存しました');
+}
+
+// ============================================================
+// データ読込
+// ============================================================
+async function loadAll(manual){
+  if(!sb){ setConn(false,'未接続：supabase_config.js を確認'); return; }
+  try{
+    const [m,t,tp,st,dir,iss,dlv] = await Promise.all([
+      sb.from('nurture_meta').select('*').eq('board_id',BID).maybeSingle(),
+      sb.from('nurture_tasks').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
+      sb.from('nurture_topics').select('*').eq('board_id',BID).order('created_at',{ascending:false}),
+      sb.from('nurture_stuck').select('*').eq('board_id',BID),
+      sb.from('nurture_directives').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
+      sb.from('nurture_issues').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:false}),
+      sb.from('nurture_deliverables').select('*').eq('board_id',BID).order('delivered_on',{ascending:false}).order('created_at',{ascending:false})
+    ]);
+    if(m.data){ META.title=m.data.title||META.title; META.client_label=m.data.client_label||META.client_label; }
+    applyMeta();
+    TASKS = t.data||[]; TOPICS = tp.data||[];
+    DIRECTIVES = dir.data||[]; ISSUES = iss.data||[]; DELIVS = dlv.data||[];
+    renderTasks(); renderTopics(); renderDirectives(); renderIssues(); renderDeliverables();
+    // stuck（自分が編集中の欄は上書きしない）
+    (st.data||[]).forEach(row=>{
+      const el = row.owner==='kumiko' ? document.getElementById('stuckK') : document.getElementById('stuckC');
+      if(el && document.activeElement!==el) el.value = row.content||'';
+    });
+    setConn(true,'接続OK');
+    const now=new Date();
+    document.getElementById('lastSync').textContent='最終更新 '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    if(manual) toast('最新の状態にしました');
+  }catch(e){
+    console.error(e); setConn(false,'読込エラー：'+(e.message||e));
+  }
+}
+
+// ============================================================
+// タスク描画
+// ============================================================
+function renderTasks(){
+  const lk=document.getElementById('listK'), lc=document.getElementById('listC');
+  lk.innerHTML=''; lc.innerHTML='';
+  const k=TASKS.filter(t=>t.owner==='kumiko'), c=TASKS.filter(t=>t.owner==='client');
+  document.getElementById('cntK').textContent = k.filter(t=>t.status==='done').length+'/'+k.length;
+  document.getElementById('cntC').textContent = c.filter(t=>t.status==='done').length+'/'+c.length;
+  if(!k.length) lk.innerHTML='<div class="empty-note">まだタスクなし</div>';
+  if(!c.length) lc.innerHTML='<div class="empty-note">まだタスクなし</div>';
+  k.forEach(t=>lk.appendChild(taskEl(t)));
+  c.forEach(t=>lc.appendChild(taskEl(t)));
+  // progress
+  const done=TASKS.filter(t=>t.status==='done').length;
+  const pct = TASKS.length ? Math.round(done/TASKS.length*100) : 0;
+  document.getElementById('progBar').style.width=pct+'%';
+  document.getElementById('progTxt').textContent = pct+'%（'+done+'/'+TASKS.length+'）';
+}
+function taskEl(t){
+  const li=document.createElement('li');
+  li.className='task '+(t.status==='done'?'done':t.status==='doing'?'doing':'');
+  const memoHtml = t.memo
+    ? '<div class="t-memo" onclick="editMemo(\''+t.id+'\')">'+esc(t.memo)+'</div>'
+    : '<div class="t-memo empty" onclick="editMemo(\''+t.id+'\')">＋補足・メモを追加</div>';
+  li.innerHTML =
+    '<div class="check" title="完了" onclick="toggleDone(\''+t.id+'\')">'+(t.status==='done'?'✓':t.status==='doing'?'⏳':'')+'</div>'+
+    '<div class="t-body">'+
+      '<div class="t-title" onclick="editTitleTask(\''+t.id+'\')">'+esc(t.title)+'</div>'+
+      memoHtml+
+      '<div class="t-actions">'+
+        '<button onclick="toggleDoing(\''+t.id+'\')">'+(t.status==='doing'?'着手中を解除':'⏳着手中')+'</button>'+
+        '<button onclick="moveOwner(\''+t.id+'\')">↔担当変更</button>'+
+        '<button class="del" onclick="delTask(\''+t.id+'\')">🗑</button>'+
+      '</div>'+
+    '</div>';
+  return li;
+}
+
+// ============================================================
+// タスク操作
+// ============================================================
+async function quickAdd(owner){
+  const el=document.getElementById(owner==='kumiko'?'addK':'addC');
+  const v=el.value.trim(); if(!v) return; el.value='';
+  await addTask(v,owner);
+}
+async function addTask(title,owner,memo){
+  if(!sb) return;
+  const row={board_id:BID,title:title,owner:owner,status:'todo',memo:memo||'',sort_order:Date.now()};
+  const {data,error}=await sb.from('nurture_tasks').insert(row).select().single();
+  if(error){toast('追加エラー');return;}
+  TASKS.push(data); renderTasks();
+}
+async function toggleDone(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  const done = t.status!=='done';
+  await patchTask(id,{status:done?'done':'todo', done_at:done?new Date().toISOString():null});
+  if(done) toast('完了しました');
+}
+async function toggleDoing(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  await patchTask(id,{status:t.status==='doing'?'todo':'doing', done_at:null});
+}
+async function moveOwner(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  await patchTask(id,{owner:t.owner==='kumiko'?'client':'kumiko'});
+}
+async function editTitleTask(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  const v=prompt('タスクを編集',t.title); if(v===null)return;
+  if(!v.trim()) return;
+  await patchTask(id,{title:v.trim()});
+}
+async function editMemo(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  const v=prompt('つまずき・メモ（このタスク）',t.memo||''); if(v===null)return;
+  await patchTask(id,{memo:v.trim()});
+}
+async function delTask(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  if(!confirm('このタスクを削除しますか？\n「'+t.title+'」'))return;
+  const {error}=await sb.from('nurture_tasks').delete().eq('id',id);
+  if(error){toast('削除エラー');return;}
+  TASKS=TASKS.filter(x=>x.id!==id); renderTasks();
+}
+async function patchTask(id,patch){
+  if(!sb)return;
+  patch.updated_at=new Date().toISOString();
+  const {data,error}=await sb.from('nurture_tasks').update(patch).eq('id',id).select().single();
+  if(error){toast('更新エラー');return;}
+  const i=TASKS.findIndex(x=>x.id===id); if(i>=0)TASKS[i]=data; renderTasks();
+}
+
+// ============================================================
+// 議題ログ
+// ============================================================
+function renderTopics(){
+  const ul=document.getElementById('topicLog');
+  ul.innerHTML='';
+  document.getElementById('topicEmpty').style.display = TOPICS.length?'none':'block';
+  TOPICS.forEach(tp=>{
+    const li=document.createElement('li');
+    const d=new Date(tp.created_at);
+    const who = tp.author==='kumiko'?'くみこ':(META.client_label||'相手');
+    li.innerHTML='<div>'+esc(tp.content)+'</div>'+
+      '<div class="meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+'</span>'+
+      '<span class="tdel" onclick="delTopic(\''+tp.id+'\')">削除</span></div>';
+    ul.appendChild(li);
+  });
+}
+async function addTopic(content){
+  if(!sb)return;
+  const {data,error}=await sb.from('nurture_topics').insert({board_id:BID,content:content,author:ROLE}).select().single();
+  if(error)return;
+  TOPICS.unshift(data);
+}
+async function delTopic(id){
+  if(!confirm('この議題ログを削除しますか？'))return;
+  await sb.from('nurture_topics').delete().eq('id',id);
+  TOPICS=TOPICS.filter(x=>x.id!==id); renderTopics();
+}
+
+// ============================================================
+// 共通ユーティリティ（新セクション用）
+// ============================================================
+async function patchRow(table,arr,id,patch,rerender){
+  if(!sb)return;
+  patch.updated_at=new Date().toISOString();
+  const {data,error}=await sb.from(table).update(patch).eq('id',id).select().single();
+  if(error){toast('更新エラー');return;}
+  const i=arr.findIndex(x=>x.id===id); if(i>=0)arr[i]=data; if(rerender)rerender();
+}
+function fmtDate(s){ if(!s)return''; const p=String(s).slice(0,10).split('-'); return p.length===3?(+p[1])+'/'+(+p[2]):esc(s); }
+function ownerLabel(o){ return o==='kumiko'?'くみこ':o==='client'?(META.client_label||'クライアント'):o==='executive'?'役員':esc(o); }
+
+// ============================================================
+// 経営：期待・注視指標（役員／くみこが編集、担当者は閲覧）
+// ============================================================
+function toggleDirForm(){ if(!canEditDirectives())return; document.getElementById('dirForm').classList.toggle('on'); }
+function renderDirectives(){
+  const list=document.getElementById('dirList'); if(!list) return;
+  list.innerHTML='';
+  document.getElementById('dirEmpty').style.display = DIRECTIVES.length?'none':'block';
+  const canEdit=canEditDirectives();
+  DIRECTIVES.forEach(d=>{
+    const el=document.createElement('div');
+    el.className='directive'+(d.status==='achieved'?' achieved':'');
+    let html='<div class="d-title">'+esc(d.title)+'</div>';
+    if(d.body) html+='<div class="d-body">'+esc(d.body)+'</div>';
+    if(d.metric) html+='<div class="d-metric"><span class="lbl">追うべき数値／KPI</span>'+esc(d.metric)+'</div>';
+    if(canEdit){
+      html+='<div class="d-actions">'+
+        '<button onclick="toggleDirAchieved(\''+d.id+'\')">'+(d.status==='achieved'?'再開':'達成')+'</button>'+
+        '<button onclick="editDirective(\''+d.id+'\')">編集</button>'+
+        '<button onclick="delDirective(\''+d.id+'\')">削除</button>'+
+      '</div>';
+    }
+    el.innerHTML=html;
+    list.appendChild(el);
+  });
+}
+async function addDirective(){
+  if(!sb||!canEditDirectives())return;
+  const title=document.getElementById('dirTitle').value.trim();
+  if(!title){toast('見出しを入力してください');return;}
+  const body=document.getElementById('dirBody').value.trim();
+  const metric=document.getElementById('dirMetric').value.trim();
+  const {data,error}=await sb.from('nurture_directives').insert({board_id:BID,title,body,metric,author:ROLE,status:'active',sort_order:Date.now()}).select().single();
+  if(error){toast('登録エラー');return;}
+  DIRECTIVES.push(data);
+  document.getElementById('dirTitle').value='';document.getElementById('dirBody').value='';document.getElementById('dirMetric').value='';
+  document.getElementById('dirForm').classList.remove('on');
+  renderDirectives(); toast('登録しました');
+}
+async function editDirective(id){
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
+  const title=prompt('見出し',d.title); if(title===null)return;
+  const body=prompt('背景・意図（任意）',d.body||''); if(body===null)return;
+  const metric=prompt('追うべき数値／KPI',d.metric||''); if(metric===null)return;
+  await patchRow('nurture_directives',DIRECTIVES,id,{title:title.trim(),body:body.trim(),metric:metric.trim()},renderDirectives);
+}
+async function toggleDirAchieved(id){
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
+  await patchRow('nurture_directives',DIRECTIVES,id,{status:d.status==='achieved'?'active':'achieved'},renderDirectives);
+}
+async function delDirective(id){
+  if(!canEditDirectives())return;
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d)return;
+  if(!confirm('削除しますか？\n「'+d.title+'」'))return;
+  await sb.from('nurture_directives').delete().eq('id',id);
+  DIRECTIVES=DIRECTIVES.filter(x=>x.id!==id); renderDirectives();
+}
+
+// ============================================================
+// 課題トラッカー（ボトルネック → 解決の軌跡）
+// ============================================================
+function toggleIssueForm(){ document.getElementById('issueForm').classList.toggle('on'); }
+function renderIssues(){
+  const openL=document.getElementById('issueOpenList'), resL=document.getElementById('issueResList');
+  if(!openL) return;
+  openL.innerHTML=''; resL.innerHTML='';
+  const open=ISSUES.filter(i=>i.status!=='resolved');
+  const res=ISSUES.filter(i=>i.status==='resolved');
+  document.getElementById('issueOpenCnt').textContent=open.length;
+  document.getElementById('issueResCnt').textContent=res.length;
+  if(!open.length) openL.innerHTML='<div class="empty-note">対応中の課題はありません</div>';
+  if(!res.length) resL.innerHTML='<div class="empty-note">解決済みはまだありません</div>';
+  open.forEach(i=>openL.appendChild(issueEl(i)));
+  res.forEach(i=>resL.appendChild(issueEl(i)));
+}
+function issueEl(i){
+  const el=document.createElement('div');
+  el.className='issue-card'+(i.status==='resolved'?' resolved':'');
+  let html='';
+  if(i.status!=='resolved') html+='<span class="i-badge '+(i.status==='in_progress'?'in_progress':'open')+'">'+(i.status==='in_progress'?'対応中':'未着手')+'</span>';
+  html+='<span class="i-title">'+esc(i.title)+'</span>';
+  if(i.detail) html+='<div class="i-detail">'+esc(i.detail)+'</div>';
+  if(i.status==='resolved' && i.resolution) html+='<div class="i-res"><span class="lbl">解決の内容</span>'+esc(i.resolution)+'</div>';
+  html+='<div class="i-meta"><span>発生 '+fmtDate(i.opened_on)+'</span>'+(i.resolved_on?'<span>解決 '+fmtDate(i.resolved_on)+'</span>':'')+(i.owner?'<span>担当 '+ownerLabel(i.owner)+'</span>':'')+'</div>';
+  html+='<div class="i-actions">';
+  if(i.status==='open') html+='<button onclick="setIssueStatus(\''+i.id+'\',\'in_progress\')">対応中にする</button>';
+  if(i.status!=='resolved') html+='<button class="res" onclick="resolveIssue(\''+i.id+'\')">解決にする</button>';
+  else html+='<button onclick="setIssueStatus(\''+i.id+'\',\'in_progress\')">対応中に戻す</button>';
+  html+='<button onclick="editIssue(\''+i.id+'\')">編集</button>';
+  html+='<button class="del" onclick="delIssue(\''+i.id+'\')">削除</button></div>';
+  el.innerHTML=html;
+  return el;
+}
+async function addIssue(){
+  if(!sb)return;
+  const title=document.getElementById('issueTitle').value.trim();
+  if(!title){toast('課題の見出しを入力してください');return;}
+  const detail=document.getElementById('issueDetail').value.trim();
+  const {data,error}=await sb.from('nurture_issues').insert({board_id:BID,title,detail,status:'open',owner:ROLE,sort_order:Date.now()}).select().single();
+  if(error){toast('登録エラー');return;}
+  ISSUES.unshift(data);
+  document.getElementById('issueTitle').value='';document.getElementById('issueDetail').value='';
+  document.getElementById('issueForm').classList.remove('on');
+  renderIssues(); toast('課題を登録しました');
+}
+async function setIssueStatus(id,status){
+  const patch={status}; if(status!=='resolved') patch.resolved_on=null;
+  await patchRow('nurture_issues',ISSUES,id,patch,renderIssues);
+}
+async function resolveIssue(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i)return;
+  const res=prompt('どのように解決しましたか？（解決の内容を記録します）',i.resolution||''); if(res===null)return;
+  const today=new Date().toISOString().slice(0,10);
+  await patchRow('nurture_issues',ISSUES,id,{status:'resolved',resolution:res.trim(),resolved_on:today},renderIssues);
+  toast('解決済みにしました');
+}
+async function editIssue(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i)return;
+  const title=prompt('課題の見出し',i.title); if(title===null)return;
+  const detail=prompt('詳細（任意）',i.detail||''); if(detail===null)return;
+  await patchRow('nurture_issues',ISSUES,id,{title:title.trim(),detail:detail.trim()},renderIssues);
+}
+async function delIssue(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i)return;
+  if(!confirm('削除しますか？\n「'+i.title+'」'))return;
+  await sb.from('nurture_issues').delete().eq('id',id);
+  ISSUES=ISSUES.filter(x=>x.id!==id); renderIssues();
+}
+
+// ============================================================
+// 成果物ログ（弊社提出物）
+// ============================================================
+function toggleDelivForm(){ document.getElementById('delivForm').classList.toggle('on'); }
+function renderDeliverables(){
+  const ul=document.getElementById('delivList'); if(!ul)return;
+  ul.innerHTML='';
+  document.getElementById('delivEmpty').style.display = DELIVS.length?'none':'block';
+  DELIVS.forEach(d=>{
+    const li=document.createElement('li'); li.className='deliv-item';
+    const titleHtml = d.url ? '<a href="'+esc(d.url)+'" target="_blank" rel="noopener">'+esc(d.title)+'</a>' : esc(d.title);
+    li.innerHTML='<div class="d-date">'+fmtDate(d.delivered_on)+'</div>'+
+      '<div class="d-main"><div class="d-t">'+titleHtml+(d.category?'<span class="d-cat">'+esc(d.category)+'</span>':'')+'</div>'+
+      (d.summary?'<div class="d-sum">'+esc(d.summary)+'</div>':'')+'</div>'+
+      '<span class="d-del" onclick="delDeliverable(\''+d.id+'\')">×</span>';
+    ul.appendChild(li);
+  });
+}
+async function addDeliverable(){
+  if(!sb)return;
+  const title=document.getElementById('delivTitle').value.trim();
+  if(!title){toast('タイトルを入力してください');return;}
+  const category=document.getElementById('delivCat').value;
+  const url=document.getElementById('delivUrl').value.trim();
+  const summary=document.getElementById('delivSummary').value.trim();
+  const date=document.getElementById('delivDate').value || new Date().toISOString().slice(0,10);
+  const {data,error}=await sb.from('nurture_deliverables').insert({board_id:BID,title,category,url,summary,delivered_on:date}).select().single();
+  if(error){toast('登録エラー');return;}
+  DELIVS.unshift(data);
+  DELIVS.sort((a,b)=>String(b.delivered_on||'').localeCompare(String(a.delivered_on||'')));
+  ['delivTitle','delivUrl','delivSummary'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('delivCat').value=''; document.getElementById('delivDate').value='';
+  document.getElementById('delivForm').classList.remove('on');
+  renderDeliverables(); toast('成果物を登録しました');
+}
+async function delDeliverable(id){
+  const d=DELIVS.find(x=>x.id===id); if(!d)return;
+  if(!confirm('削除しますか？\n「'+d.title+'」'))return;
+  await sb.from('nurture_deliverables').delete().eq('id',id);
+  DELIVS=DELIVS.filter(x=>x.id!==id); renderDeliverables();
+}
+
+// ============================================================
+// つまずきメモ（人ごと・自動保存）
+// ============================================================
+let stuckTimers={};
+function stuckDirty(owner){
+  const el=document.getElementById(owner==='kumiko'?'stuckK':'stuckC');
+  const savedEl=document.getElementById(owner==='kumiko'?'savedK':'savedC');
+  savedEl.textContent='入力中…';
+  clearTimeout(stuckTimers[owner]);
+  stuckTimers[owner]=setTimeout(async()=>{
+    if(!sb){savedEl.textContent='';return;}
+    await sb.from('nurture_stuck').upsert({board_id:BID,owner:owner,content:el.value,updated_at:new Date().toISOString()},{onConflict:'board_id,owner'});
+    savedEl.textContent='✓ 保存しました';
+    setTimeout(()=>{savedEl.textContent='';},1800);
+  },700);
+}
+
+// ============================================================
+// 貼り付け → 仕分け（ヒューリスティック）
+// ============================================================
+const TASK_HINT=/(する|やる|作る|つくる|送る|送信|用意|準備|書く|考える|チェック|確認|設計|修正|対応|共有|連絡|提出|決める|まとめる|見直す|返信|作成|依頼|手配|予約|設定|アップ|投稿|撮る|募集|締め|〆|まで|TODO|ToDo|タスク|やること)/;
+const KUMIKO_HINT=/(くみこ|森川|もりくみ|私が|こちらで|弊社)/;
+const TOPIC_HINT=/(決めたこと|決定|方針|共有事項|議題|話したこと|メモ：|メモ:|前提|背景|所感)/;
+
+function splitClean(text){
+  return text.split(/\r?\n/).map(l=>l.replace(/^[\s　]*[-・*※◯○●▶▸►☐□✓✔①-⑳\d]+[\.\)、:：]?\s*/,'').replace(/^[\s　]+|[\s　]+$/g,'')).filter(Boolean);
+}
+function parseAndPreview(){
+  const raw=document.getElementById('pasteBox').value;
+  const lines=splitClean(raw);
+  if(!lines.length){toast('テキストを貼り付けてから実行してください');return;}
+  pvData = lines.map(l=>{
+    let owner=null, arrowClient=false;
+    // 「担当 → やること」形式
+    const arrow=l.match(/^(.{1,12}?)\s*(?:→|➡|=>|:|：)\s*(.+)$/);
+    let title=l;
+    if(arrow){
+      const head=arrow[1];
+      if(KUMIKO_HINT.test(head)) owner='kumiko';
+      else if(/さん|様|クライアント|相手|先方/.test(head) || (META.client_label && head.includes(META.client_label))) { owner='client'; arrowClient=true; }
+      // 議題っぽいヘッダーはタイトルだけにしない
+      if(owner) title=arrow[2].trim();
+    }
+    if(!owner){
+      if(KUMIKO_HINT.test(l)) owner='kumiko';
+      else if(/さん|様|先方|クライアント/.test(l) || (META.client_label && l.includes(META.client_label))) owner='client';
+    }
+    const isTopic = TOPIC_HINT.test(l) || (!TASK_HINT.test(l) && !arrow && !owner);
+    return { kind: isTopic?'topic':'task', title:title, owner: owner||'kumiko' };
+  });
+  renderPreview();
+  document.getElementById('pvOverlay').classList.add('on');
+}
+function renderPreview(){
+  const box=document.getElementById('pvList');
+  box.innerHTML='';
+  pvData.forEach((it,i)=>{
+    const row=document.createElement('div');
+    row.className='pv-item'+(it.kind==='topic'?' istopic':'');
+    row.innerHTML=
+      '<span class="pv-kind '+it.kind+'" onclick="pvToggleKind('+i+')" title="クリックでタスク⇄議題">'+(it.kind==='task'?'タスク':'議題')+'</span>'+
+      '<input class="pv-title" value="'+esc(it.title).replace(/"/g,'&quot;')+'" oninput="pvData['+i+'].title=this.value">'+
+      (it.kind==='task'
+        ? '<select onchange="pvData['+i+'].owner=this.value"><option value="kumiko"'+(it.owner==='kumiko'?' selected':'')+'>くみこ</option><option value="client"'+(it.owner==='client'?' selected':'')+'>'+esc(META.client_label)+'</option></select>'
+        : '')+
+      '<span class="rm" onclick="pvRemove('+i+')">×</span>';
+    box.appendChild(row);
+  });
+  if(!pvData.length) box.innerHTML='<div class="empty-note">仕分ける行がありません</div>';
+}
+function pvToggleKind(i){ pvData[i].kind = pvData[i].kind==='task'?'topic':'task'; renderPreview(); }
+function pvRemove(i){ pvData.splice(i,1); renderPreview(); }
+function closePreview(){ document.getElementById('pvOverlay').classList.remove('on'); }
+async function commitPreview(){
+  if(!sb){toast('未接続');return;}
+  let nt=0,ng=0;
+  for(const it of pvData){
+    if(!it.title.trim()) continue;
+    if(it.kind==='task'){ await addTask(it.title.trim(), it.owner); nt++; }
+    else { await addTopic(it.title.trim()); ng++; }
+  }
+  renderTasks(); renderTopics();
+  closePreview();
+  document.getElementById('pasteBox').value='';
+  toast('登録完了：タスク'+nt+'件 / 議題'+ng+'件');
+}
+
+// ============================================================
+// 診断
+// ============================================================
+async function runDiag(){
+  document.getElementById('diagOverlay').classList.add('on');
+  const body=document.getElementById('diagBody');
+  if(!sb){ body.innerHTML='<div><span>Supabase接続</span><span class="r">✕ 未設定</span></div>'; return; }
+  body.innerHTML='確認中…';
+  const rows=[];
+  rows.push(await checkTable('nurture_tasks'));
+  rows.push(await checkTable('nurture_topics'));
+  rows.push(await checkTable('nurture_stuck'));
+  rows.push(await checkTable('nurture_meta'));
+  rows.push(await checkTable('nurture_directives'));
+  rows.push(await checkTable('nurture_issues'));
+  rows.push(await checkTable('nurture_deliverables'));
+  body.innerHTML = '<div><span>Supabase URL</span><span class="g">'+SUPABASE_CONFIG.url.replace('https://','')+'</span></div>'+
+    '<div><span>ボードID</span><span class="g">'+BID+'</span></div>'+ rows.join('');
+}
+async function checkTable(name){
+  try{
+    const {error}=await sb.from(name).select('*',{count:'exact',head:true}).eq('board_id',BID);
+    if(error) return '<div><span>'+name+'</span><span class="r">✕ '+esc(error.message)+'</span></div>';
+    return '<div><span>'+name+'</span><span class="g">✓ OK</span></div>';
+  }catch(e){ return '<div><span>'+name+'</span><span class="r">✕ '+esc(e.message||e)+'</span></div>'; }
+}
+
+// ============================================================
+// util
+// ============================================================
+function setConn(ok,txt){
+  const d=document.getElementById('connDot');
+  d.className='dot '+(ok?'ok':'err');
+  document.getElementById('connTxt').textContent=txt;
+}
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),2200);
+}
+function closeEl(id){ document.getElementById(id).classList.remove('on'); }
+
+// ============================================================
+// 認証（許可アドレスのみ・メールリンクログイン）
+// ============================================================
+const ALLOW = ['4morikawa5@gmail.com','k.morikawa@merone.jp','anchidaietrieyoshida@gmail.com'];
+let boardStarted = false;
+
+function authMsg(text,type){
+  const el=document.getElementById('authMsg');
+  el.textContent=text||''; el.className='authmsg'+(type?' '+type:'');
+}
+function showGate(){ document.getElementById('authGate').classList.remove('hide'); }
+function hideGate(){ document.getElementById('authGate').classList.add('hide'); }
+function resetAuth(){
+  document.getElementById('authStep1').style.display='';
+  document.getElementById('authStep2').style.display='none';
+  authMsg('');
+}
+async function sendMagic(){
+  const email=(document.getElementById('authEmail').value||'').trim().toLowerCase();
+  if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ authMsg('メールアドレスを正しくご入力ください','err'); return; }
+  if(!ALLOW.includes(email)){ authMsg('このアドレスは許可リストに登録されていません。管理者にお問い合わせください。','err'); return; }
+  const btn=document.getElementById('authSendBtn'); btn.disabled=true; btn.textContent='送信中…';
+  const {error}=await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
+  btn.disabled=false; btn.textContent='ログイン用リンクを送信';
+  if(error){ authMsg('送信エラー：'+error.message,'err'); return; }
+  document.getElementById('sentTo').textContent=email;
+  document.getElementById('authStep1').style.display='none';
+  document.getElementById('authStep2').style.display='';
+  authMsg('');
+}
+async function evalSession(session){
+  if(session && session.user){
+    const email=(session.user.email||'').toLowerCase();
+    if(!ALLOW.includes(email)){
+      await sb.auth.signOut(); showGate(); resetAuth();
+      authMsg('このアドレスには閲覧権限がありません','err'); return false;
+    }
+    document.getElementById('authUser').textContent=email+'　';
+    hideGate();
+    startBoard();
+    return true;
+  }
+  showGate();
+  return false;
+}
+async function logout(){
+  if(sb) await sb.auth.signOut();
+  location.reload();
+}
+function startBoard(){
+  if(boardStarted) return; boardStarted=true;
+  loadAll().then(()=>ensureRole());
+  setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 5000);
+  window.addEventListener('focus',()=>{ if(boardStarted) loadAll(); });
+}
+
+// ============================================================
+// 起動
+// ============================================================
+
+function resetDemo(){ localStorage.removeItem('nurture_demo'); location.reload(); }
+function makeSB(){
+  const SEED={
+    nurture_meta:[{board_id:'client1',title:'○○株式会社 ナーチャリング進行ボード',client_label:'○○株式会社'}],
+    nurture_directives:[{id:'d1',board_id:'client1',title:'初回面談からの成約率を今期中に引き上げる',body:'今期の最重要テーマ。現場は面談後フォローの精度向上に集中してください。',metric:'成約率 15% → 20%（月間成約20件）',status:'active',author:'executive',sort_order:1}],
+    nurture_tasks:[
+      {id:'t1',board_id:'client1',title:'LT1の配信文を金曜までに送付',owner:'kumiko',status:'todo',memo:'',sort_order:1},
+      {id:'t2',board_id:'client1',title:'リッチメニュー画像を用意',owner:'client',status:'done',memo:'',sort_order:2},
+      {id:'t3',board_id:'client1',title:'6月ファネル分析レポートを更新',owner:'kumiko',status:'doing',memo:'役員の注視KPIに合わせて成約率の内訳を追加',sort_order:3}],
+    nurture_topics:[
+      {id:'p1',board_id:'client1',content:'初回配信は夜21時固定と決定',author:'kumiko',created_at:'2026-07-14T12:00:00Z'},
+      {id:'p2',board_id:'client1',content:'面談リマインドは2通に削減する方針で合意',author:'client',created_at:'2026-07-13T09:00:00Z'}],
+    nurture_stuck:[
+      {board_id:'client1',owner:'kumiko',content:'配信文のトーンについて役員の意向を確認したい'},
+      {board_id:'client1',owner:'client',content:'Lステップの分岐設定で相談したい点があります'}],
+    nurture_issues:[
+      {id:'i1',board_id:'client1',title:'面談後のフォロー漏れが発生している',detail:'翌日連絡が属人化しており抜けが出る',status:'in_progress',owner:'kumiko',resolution:'',opened_on:'2026-07-10',resolved_on:null,sort_order:1},
+      {id:'i3',board_id:'client1',title:'配信過多によるブロック増加',detail:'',status:'open',owner:'kumiko',resolution:'',opened_on:'2026-07-12',resolved_on:null,sort_order:2},
+      {id:'i2',board_id:'client1',title:'LPファーストビューの離脱が高い',detail:'',status:'resolved',owner:'client',resolution:'事例訴求に差し替え、離脱率を12ポイント改善',opened_on:'2026-06-20',resolved_on:'2026-07-05',sort_order:3}],
+    nurture_deliverables:[
+      {id:'v1',board_id:'client1',title:'7月勉強会 募集バナー 3種',category:'バナー',url:'https://example.com',summary:'税金フック版／メルカリ版／QA版',delivered_on:'2026-07-11'},
+      {id:'v2',board_id:'client1',title:'6月ファネル分析レポート',category:'レポート',url:'https://example.com',summary:'キャンセル率の要因分解と改善提案',delivered_on:'2026-07-02'}]
+  };
+  let DB; try{ DB=JSON.parse(localStorage.getItem('nurture_demo')); }catch(e){}
+  if(!DB){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem('nurture_demo',JSON.stringify(DB)); }
+  let idc=1; const persist=()=>localStorage.setItem('nurture_demo',JSON.stringify(DB));
+  class Q{
+    constructor(t){this.t=t;this._op='select';this._f=[];this._row=null;this._single=false;this._maybe=false;this._orders=[];this._head=false;this._conflict=null;}
+    select(c,o){ if(o&&o.head)this._head=true; return this; }
+    eq(c,v){ this._f.push([c,v]); return this; }
+    order(c,o){ this._orders.push([c,!(o&&o.ascending===false)]); return this; }
+    single(){ this._single=true; return this; }
+    maybeSingle(){ this._maybe=true; return this; }
+    insert(r){ this._op='insert'; this._row=r; return this; }
+    update(p){ this._op='update'; this._row=p; return this; }
+    upsert(r,o){ this._op='upsert'; this._row=r; this._conflict=o&&o.onConflict; return this; }
+    delete(){ this._op='delete'; return this; }
+    _match(r){ return this._f.every(([c,v])=>r[c]===v); }
+    _run(){
+      const arr = DB[this.t] || (DB[this.t]=[]);
+      if(this._op==='select'){
+        let rows=arr.filter(r=>this._match(r));
+        [...this._orders].reverse().forEach(([c,asc])=>rows.sort((a,b)=>{const x=a[c]==null?'':a[c],y=b[c]==null?'':b[c]; if(x===y)return 0; return (x>y?1:-1)*(asc?1:-1);}));
+        if(this._head) return {data:null,count:rows.length,error:null};
+        if(this._maybe) return {data:rows[0]||null,error:null};
+        if(this._single) return {data:rows[0]||null,error:rows[0]?null:{message:'no rows'}};
+        return {data:rows,error:null};
+      }
+      if(this._op==='insert'){ const row=Object.assign({},this._row); if(!row.id)row.id='demo_'+(idc++)+'_'+Date.now(); arr.push(row); persist(); return {data:row,error:null}; }
+      if(this._op==='update'){ let u=null; arr.forEach((r,i)=>{ if(this._match(r)){ arr[i]=Object.assign({},r,this._row); u=arr[i]; } }); persist(); return {data:u,error:u?null:{message:'not found'}}; }
+      if(this._op==='upsert'){ const row=Object.assign({},this._row); const keys=this._conflict?this._conflict.split(','):['board_id']; const i=arr.findIndex(r=>keys.every(k=>r[k]===row[k])); if(i>=0)arr[i]=Object.assign({},arr[i],row); else arr.push(row); persist(); return {data:row,error:null}; }
+      if(this._op==='delete'){ DB[this.t]=arr.filter(r=>!this._match(r)); persist(); return {data:null,error:null}; }
+    }
+    then(res,rej){ return Promise.resolve(this._run()).then(res,rej); }
+  }
+  return { from:t=>new Q(t), auth:{ getSession:async()=>({data:{session:{user:{email:'demo'}}}}), onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}), signOut:async()=>{} } };
+}
+function switchRole(){
+  const seq=['kumiko','client','executive'];
+  ROLE=seq[(seq.indexOf(ROLE)+1)%3];
+  localStorage.setItem('nurture_demo_role',ROLE);
+  paintRole();
+}
+(function demoInit(){
+  document.getElementById('authGate').classList.add('hide');
+  ROLE = localStorage.getItem('nurture_demo_role') || 'executive';
+  loadAll().then(()=>paintRole());
+  setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 4000);
+})();
+</script>
+</body>
+</html>
