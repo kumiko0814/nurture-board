@@ -193,19 +193,17 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 <!-- ===== ログインゲート（許可アドレスのみ） ===== -->
 <div id="authGate" class="authgate">
   <div class="authcard">
-    <div class="authlock">🔒</div>
     <h2>ナーチャリング共有ボード</h2>
-    <p class="authlead">許可されたメールアドレスの方だけがご覧いただけます。<br>ご自分のメールアドレスを入れてください。</p>
+    <p class="authlead">許可されたメールアドレスの方のみご利用いただけます。<br>ご登録のメールアドレスをご入力ください。</p>
     <div id="authStep1">
       <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"
         onkeydown="if(event.key==='Enter')sendMagic()">
-      <button class="btn authbtn" id="authSendBtn" onclick="sendMagic()">✉️ ログイン用リンクを送る</button>
+      <button class="btn authbtn" id="authSendBtn" onclick="sendMagic()">ログイン用リンクを送信</button>
     </div>
     <div id="authStep2" style="display:none">
-      <div class="authsent">✉️</div>
-      <p class="authlead"><b id="sentTo"></b> に<br><b>ログイン用リンク</b>を送りました。</p>
-      <p class="authlead">メールを開いて<b>リンクをタップ</b>すると入れます。<br><span class="hint">※同じブラウザで開くとスムーズ。届かない時は迷惑メールも確認してね</span></p>
-      <button class="btn ghost" onclick="resetAuth()">← やり直す</button>
+      <p class="authlead"><b id="sentTo"></b> 宛に<br><b>ログイン用リンク</b>を送信しました。</p>
+      <p class="authlead">メールを開き、記載のリンクをタップするとログインできます。<br><span class="hint">同じブラウザで開くと確実です。届かない場合は迷惑メールフォルダもご確認ください。</span></p>
+      <button class="btn ghost" onclick="resetAuth()">戻る</button>
     </div>
     <div id="authMsg" class="authmsg"></div>
   </div>
@@ -218,37 +216,36 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
     <div class="h-top">
       <div>
         <div class="h-title"><span id="boardTitle">ナーチャリング共有ボード</span>
-          <span class="edit" onclick="openSettings(false)">✎ 名前を編集</span></div>
-        <div class="h-sub">くみこ ⇄ <span id="clientLabelSub">クライアント</span>　やること・つまずき・議題をリアルタイムで共有</div>
+          <span class="edit" onclick="openSettings(false)">名称を編集</span></div>
+        <div class="h-sub">くみこ ／ <span id="clientLabelSub">クライアント</span>　タスク・課題・議題を相互に共有</div>
       </div>
-      <div class="who">これは<b id="whoName">？</b>の画面 <button onclick="switchRole()">切替</button></div>
+      <div class="who">表示中：<b id="whoName">－</b> <button onclick="switchRole()">切替</button></div>
     </div>
     <div class="progress"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
   </header>
 
   <!-- ===== 議題アップ ===== -->
   <div class="section">
-    <h2>🗒 議題をアップ <span class="tag">貼るだけ / AI半自動仕分け</span></h2>
-    <div class="desc">コンサルで話したメモ・Slack・議事録テキストをそのまま貼って「仕分けする」を押すと、タスクと議題ログに自動で振り分けます。中身は次の画面で直せます。</div>
+    <h2>議題を登録 <span class="tag">貼り付けで半自動仕分け</span></h2>
+    <div class="desc">打ち合わせのメモや議事録のテキストを貼り付けて「仕分け」を押すと、タスクと議題ログに自動で振り分けます。内容は次の画面で修正できます。</div>
     <textarea id="pasteBox" class="paste-box" placeholder="例）
 ・くみこ → LT1の配信文を金曜までに送る
 ・◯◯さんはリッチメニューの画像を用意
 今日決めたこと：初回配信は夜21時に固定
 つまずき：ステップ2の分岐条件がまだ曖昧"></textarea>
     <div class="paste-actions">
-      <button class="btn" onclick="parseAndPreview()">✨ 仕分けする</button>
+      <button class="btn" onclick="parseAndPreview()">仕分け</button>
       <button class="btn ghost" onclick="document.getElementById('pasteBox').value=''">クリア</button>
-      <span class="hint">もっと賢く仕分けたい時は、このメモをClaude Codeに貼って「ボードに入れて」でもOK</span>
     </div>
   </div>
 
   <!-- ===== ToDo 2人分 ===== -->
   <div class="section">
-    <h2>✅ やることリスト <span class="tag">終わったらチェック</span></h2>
-    <div class="desc">お互いの担当が丸見え。チェックで完了、⏳で「着手中」、メモでつまずきも残せます。</div>
+    <h2>タスク一覧 <span class="tag">完了したらチェック</span></h2>
+    <div class="desc">双方の担当を一覧で確認できます。チェックで完了、着手中への切替、タスクごとの補足メモも残せます。</div>
     <div class="cols">
       <div class="col kumiko">
-        <div class="col-head"><span>💗 くみこ<span class="mine-badge" id="mineK" style="display:none">あなた</span></span><span class="cnt" id="cntK">0</span></div>
+        <div class="col-head"><span>くみこ<span class="mine-badge" id="mineK" style="display:none">あなた</span></span><span class="cnt" id="cntK">0</span></div>
         <ul class="tasklist" id="listK"></ul>
         <div class="addrow">
           <input id="addK" placeholder="くみこのタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('kumiko')">
@@ -256,10 +253,10 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
         </div>
       </div>
       <div class="col client">
-        <div class="col-head"><span>💙 <span class="clientLabel">クライアント</span><span class="mine-badge" id="mineC" style="display:none">あなた</span></span><span class="cnt" id="cntC">0</span></div>
+        <div class="col-head"><span><span class="clientLabel">クライアント</span><span class="mine-badge" id="mineC" style="display:none">あなた</span></span><span class="cnt" id="cntC">0</span></div>
         <ul class="tasklist" id="listC"></ul>
         <div class="addrow">
-          <input id="addC" placeholder="相手のタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('client')">
+          <input id="addC" placeholder="クライアントのタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('client')">
           <button onclick="quickAdd('client')">＋</button>
         </div>
       </div>
@@ -268,17 +265,17 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 
   <!-- ===== つまずき ===== -->
   <div class="section">
-    <h2>🚧 今つまずいていること <span class="tag">お互い見える</span></h2>
-    <div class="desc">「ここで止まってる」を書いておくと、相手が先回りで助けられます。自動保存。</div>
+    <h2>現在の課題 <span class="tag">相互に共有</span></h2>
+    <div class="desc">現在停滞している点を記入しておくと、相手先が先回りで対応できます。内容は自動保存されます。</div>
     <div class="stuck-grid">
       <div class="stuck kumiko">
-        <label>💗 くみこがつまずいてること</label>
-        <textarea id="stuckK" oninput="stuckDirty('kumiko')" placeholder="例）配信文のトーン、これで強すぎないか不安…"></textarea>
+        <label>くみこの課題</label>
+        <textarea id="stuckK" oninput="stuckDirty('kumiko')" placeholder="例）配信文のトーンについて確認したい点があります"></textarea>
         <div class="saved" id="savedK"></div>
       </div>
       <div class="stuck client">
-        <label>💙 <span class="clientLabel">クライアント</span>がつまずいてること</label>
-        <textarea id="stuckC" oninput="stuckDirty('client')" placeholder="例）Lステップの分岐設定がわからない…"></textarea>
+        <label><span class="clientLabel">クライアント</span>の課題</label>
+        <textarea id="stuckC" oninput="stuckDirty('client')" placeholder="例）Lステップの分岐設定について相談したい"></textarea>
         <div class="saved" id="savedC"></div>
       </div>
     </div>
@@ -286,7 +283,7 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 
   <!-- ===== 議題ログ ===== -->
   <div class="section">
-    <h2>📚 議題ログ <span class="tag">話したこと・決めたこと</span></h2>
+    <h2>議題ログ <span class="tag">協議事項・決定事項</span></h2>
     <div class="desc">仕分けで「議題」に振り分けた内容がここに時系列で溜まります。</div>
     <ul class="topic-log" id="topicLog"></ul>
     <div class="empty-note" id="topicEmpty">まだ議題ログはありません。上の「議題をアップ」から追加できます。</div>
@@ -296,7 +293,7 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
   <div class="statusbar">
     <span class="dot" id="connDot"></span><span id="connTxt">接続確認中…</span>
     <button class="linkbtn" onclick="loadAll(true)">↻ 今すぐ更新</button>
-    <button class="linkbtn" onclick="runDiag()">🩺 接続診断</button>
+    <button class="linkbtn" onclick="runDiag()">接続診断</button>
     <span id="lastSync"></span>
     <span id="authUser"></span>
     <button class="logoutbtn" onclick="logout()">ログアウト</button>
@@ -306,28 +303,28 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 <!-- ===== settings modal (ボード名・クライアント名・役割) ===== -->
 <div class="overlay" id="setOverlay">
   <div class="modal">
-    <h3>💗 ボードの設定</h3>
-    <div class="desc" id="setHint">はじめまして！このボードの名前と、相手（クライアント）のお名前を入れてください。あとからいつでも変えられます。</div>
+    <h3>ボードの設定</h3>
+    <div class="desc" id="setHint">このボードの名称と、相手先（クライアント）の表示名をご入力ください。後からいつでも変更できます。</div>
     <div class="setfield">
-      <label>クライアントのお名前 <span class="req">必須</span></label>
-      <input id="setClient" placeholder="例）田中さん / ○○株式会社" oninput="document.getElementById('roleClientLabel').textContent=this.value.trim()||'クライアント'">
-      <div class="fhint">ボードの💙側や表示名に使われます</div>
+      <label>クライアントの表示名 <span class="req">必須</span></label>
+      <input id="setClient" placeholder="例）○○株式会社 / ○○様" oninput="document.getElementById('roleClientLabel').textContent=this.value.trim()||'クライアント'">
+      <div class="fhint">ボードのクライアント側の表示名に使用されます</div>
     </div>
     <div class="setfield">
-      <label>ボードの名前</label>
-      <input id="setTitle" placeholder="例）田中さん ナーチャリング進行ボード">
-      <div class="fhint">空欄なら「ナーチャリング共有ボード」になります</div>
+      <label>ボードの名称</label>
+      <input id="setTitle" placeholder="例）○○様 ナーチャリング進行ボード">
+      <div class="fhint">未入力の場合は「ナーチャリング共有ボード」になります</div>
     </div>
     <div class="setfield">
-      <label>あなたはどちらですか？</label>
+      <label>ご利用者はどちらですか</label>
       <div class="rolepick">
-        <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> 💗 くみこ</label>
-        <label class="rolebtn"><input type="radio" name="setRole" value="client"> 💙 <span id="roleClientLabel">クライアント</span></label>
+        <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> くみこ</label>
+        <label class="rolebtn"><input type="radio" name="setRole" value="client"> <span id="roleClientLabel">クライアント</span></label>
       </div>
     </div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeEl('setOverlay')">キャンセル</button>
-      <button class="btn" onclick="saveSettings()">💾 保存する</button>
+      <button class="btn" onclick="saveSettings()">保存</button>
     </div>
   </div>
 </div>
@@ -335,12 +332,12 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 <!-- ===== preview modal ===== -->
 <div class="overlay" id="pvOverlay">
   <div class="modal">
-    <h3>✨ 仕分けプレビュー</h3>
-    <div class="desc">担当（くみこ / 相手）を確認して、いらない行は × で消してください。「議題」はログへ、「タスク」はToDoへ入ります。</div>
+    <h3>仕分けプレビュー</h3>
+    <div class="desc">担当（くみこ / クライアント）をご確認のうえ、不要な行は × で削除してください。「議題」はログへ、「タスク」は一覧へ登録されます。</div>
     <div id="pvList"></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closePreview()">キャンセル</button>
-      <button class="btn" onclick="commitPreview()">💾 ボードに登録</button>
+      <button class="btn" onclick="commitPreview()">ボードに登録</button>
     </div>
   </div>
 </div>
@@ -348,7 +345,7 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 <!-- ===== diagnostics modal ===== -->
 <div class="overlay" id="diagOverlay">
   <div class="modal">
-    <h3>🩺 接続診断</h3>
+    <h3>接続診断</h3>
     <div class="desc">Supabaseとの接続・各テーブルの存在をチェックします。赤があったら schema.sql を貼り直してください。</div>
     <div class="diag" id="diagBody">確認中…</div>
     <div class="modal-actions"><button class="btn" onclick="closeEl('diagOverlay')">閉じる</button></div>
@@ -414,7 +411,7 @@ function openSettings(first){
 }
 async function saveSettings(){
   const c = document.getElementById('setClient').value.trim();
-  if(!c){ toast('クライアントのお名前を入れてね'); document.getElementById('setClient').focus(); return; }
+  if(!c){ toast('クライアントの表示名を入力してください'); document.getElementById('setClient').focus(); return; }
   const t = document.getElementById('setTitle').value.trim();
   META.client_label = c;
   META.title = t || 'ナーチャリング共有ボード';
@@ -426,7 +423,7 @@ async function saveSettings(){
   }
   closeEl('setOverlay');
   renderTopics();
-  toast('保存しました✨');
+  toast('保存しました');
 }
 
 // ============================================================
@@ -482,8 +479,8 @@ function taskEl(t){
   const li=document.createElement('li');
   li.className='task '+(t.status==='done'?'done':t.status==='doing'?'doing':'');
   const memoHtml = t.memo
-    ? '<div class="t-memo" onclick="editMemo(\''+t.id+'\')">🚧 '+esc(t.memo)+'</div>'
-    : '<div class="t-memo empty" onclick="editMemo(\''+t.id+'\')">＋つまずき・メモ</div>';
+    ? '<div class="t-memo" onclick="editMemo(\''+t.id+'\')">'+esc(t.memo)+'</div>'
+    : '<div class="t-memo empty" onclick="editMemo(\''+t.id+'\')">＋補足・メモを追加</div>';
   li.innerHTML =
     '<div class="check" title="完了" onclick="toggleDone(\''+t.id+'\')">'+(t.status==='done'?'✓':t.status==='doing'?'⏳':'')+'</div>'+
     '<div class="t-body">'+
@@ -517,7 +514,7 @@ async function toggleDone(id){
   const t=TASKS.find(x=>x.id===id); if(!t)return;
   const done = t.status!=='done';
   await patchTask(id,{status:done?'done':'todo', done_at:done?new Date().toISOString():null});
-  if(done) toast('お疲れさま！完了✨');
+  if(done) toast('完了しました');
 }
 async function toggleDoing(id){
   const t=TASKS.find(x=>x.id===id); if(!t)return;
@@ -612,7 +609,7 @@ function splitClean(text){
 function parseAndPreview(){
   const raw=document.getElementById('pasteBox').value;
   const lines=splitClean(raw);
-  if(!lines.length){toast('メモを貼ってから押してね');return;}
+  if(!lines.length){toast('テキストを貼り付けてから実行してください');return;}
   pvData = lines.map(l=>{
     let owner=null, arrowClient=false;
     // 「担当 → やること」形式
@@ -645,7 +642,7 @@ function renderPreview(){
       '<span class="pv-kind '+it.kind+'" onclick="pvToggleKind('+i+')" title="クリックでタスク⇄議題">'+(it.kind==='task'?'タスク':'議題')+'</span>'+
       '<input class="pv-title" value="'+esc(it.title).replace(/"/g,'&quot;')+'" oninput="pvData['+i+'].title=this.value">'+
       (it.kind==='task'
-        ? '<select onchange="pvData['+i+'].owner=this.value"><option value="kumiko"'+(it.owner==='kumiko'?' selected':'')+'>💗くみこ</option><option value="client"'+(it.owner==='client'?' selected':'')+'>💙'+esc(META.client_label)+'</option></select>'
+        ? '<select onchange="pvData['+i+'].owner=this.value"><option value="kumiko"'+(it.owner==='kumiko'?' selected':'')+'>くみこ</option><option value="client"'+(it.owner==='client'?' selected':'')+'>'+esc(META.client_label)+'</option></select>'
         : '')+
       '<span class="rm" onclick="pvRemove('+i+')">×</span>';
     box.appendChild(row);
@@ -727,11 +724,11 @@ function resetAuth(){
 }
 async function sendMagic(){
   const email=(document.getElementById('authEmail').value||'').trim().toLowerCase();
-  if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ authMsg('メールアドレスを正しく入れてね','err'); return; }
-  if(!ALLOW.includes(email)){ authMsg('このアドレスは許可リストにありません。くみこに連絡してね🙏','err'); return; }
+  if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ authMsg('メールアドレスを正しくご入力ください','err'); return; }
+  if(!ALLOW.includes(email)){ authMsg('このアドレスは許可リストに登録されていません。管理者にお問い合わせください。','err'); return; }
   const btn=document.getElementById('authSendBtn'); btn.disabled=true; btn.textContent='送信中…';
   const {error}=await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
-  btn.disabled=false; btn.textContent='✉️ ログイン用リンクを送る';
+  btn.disabled=false; btn.textContent='ログイン用リンクを送信';
   if(error){ authMsg('送信エラー：'+error.message,'err'); return; }
   document.getElementById('sentTo').textContent=email;
   document.getElementById('authStep1').style.display='none';
@@ -745,7 +742,7 @@ async function evalSession(session){
       await sb.auth.signOut(); showGate(); resetAuth();
       authMsg('このアドレスには閲覧権限がありません','err'); return false;
     }
-    document.getElementById('authUser').textContent='👤 '+email+' ';
+    document.getElementById('authUser').textContent=email+'　';
     hideGate();
     startBoard();
     return true;
