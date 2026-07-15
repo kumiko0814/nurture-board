@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>株式会社Merone｜ナーチャリング管理コンソール</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase_config.js"></script>
+<style>
+:root{--pink:#F5A6C8;--pink-deep:#E07AAA;--navy:#26405f;--navy-deep:#1d3149;--blue:#8FC0EC;--blue-mid:#5f97be;--blue-soft:#f4f9fd;--blue-line:#cdd6e0;--purple:#B98BEA;--ink:#3a4657;--muted:#8a97a8;--ok:#5FA85A;--line:#e4ebf3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Hiragino Sans","Yu Gothic",sans-serif;color:var(--ink);background:#eef3f8;min-height:100vh}
+/* login gate */
+.gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(160deg,#f4f9fd,#fbeef1)}
+.gate.hide{display:none}
+.card{background:#fff;border-radius:24px;box-shadow:0 12px 40px rgba(38,64,95,.16);max-width:400px;width:100%;padding:34px 28px;text-align:center}
+.card h1{color:var(--navy);font-size:1.15rem;margin-bottom:4px}
+.card .brand{font-size:.72rem;font-weight:800;letter-spacing:.08em;color:var(--blue-mid);margin-bottom:14px}
+.card p{font-size:.85rem;color:#5a6577;line-height:1.7;margin-bottom:16px}
+.card input{width:100%;border:1.5px solid var(--blue-line);border-radius:12px;padding:13px 15px;font-size:1rem;font-family:inherit;margin-bottom:12px;text-align:center}
+.card input:focus{outline:none;border-color:var(--pink)}
+.btn{border:none;border-radius:14px;padding:12px 20px;font-weight:800;font-size:.92rem;cursor:pointer;color:#fff;width:100%;background:linear-gradient(120deg,var(--purple),var(--pink-deep));box-shadow:0 4px 14px rgba(224,122,170,.35)}
+.msg{font-size:.8rem;margin-top:12px;min-height:18px}
+.msg.err{color:var(--pink-deep);font-weight:700}
+/* app */
+.app{display:none;flex-direction:column;height:100vh}
+.app.on{display:flex}
+.topbar{background:linear-gradient(120deg,var(--navy-deep),var(--blue-mid) 130%);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.topbar .t{font-weight:800;font-size:1.02rem;letter-spacing:.02em}
+.topbar .t small{font-weight:600;opacity:.8;font-size:.72rem;display:block;letter-spacing:.06em}
+.topbar .r{display:flex;align-items:center;gap:12px;font-size:.78rem}
+.topbar .r .who{opacity:.9}
+.topbar .r button{background:rgba(255,255,255,.16);border:none;color:#fff;border-radius:20px;padding:6px 14px;font-weight:700;cursor:pointer;font-size:.76rem}
+.tabs{background:#fff;border-bottom:1px solid var(--line);display:flex;gap:4px;padding:0 14px;overflow-x:auto}
+.tab{border:none;background:none;padding:14px 18px;font-family:inherit;font-size:.9rem;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.tab:hover{color:var(--navy)}
+.tab.active{color:var(--navy);border-bottom-color:var(--pink-deep)}
+.tab .dot{width:9px;height:9px;border-radius:50%;background:var(--purple)}
+.tab.famm .dot{background:var(--blue-mid)}
+.tab.abcash .dot{background:var(--navy)}
+.frame-wrap{flex:1;background:#eef3f8;position:relative}
+iframe{width:100%;height:100%;border:none;display:block}
+.hint{text-align:center;font-size:.72rem;color:var(--muted);padding:8px}
+</style>
+</head>
+<body>
+
+<!-- ログイン -->
+<div class="gate" id="gate">
+  <div class="card">
+    <div class="brand">株式会社 Merone</div>
+    <h1>ナーチャリング管理コンソール</h1>
+    <div id="step1">
+      <p>管理者専用です。ご登録のメールアドレスでログインしてください。</p>
+      <input id="email" type="email" autocomplete="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')sendLink()">
+      <button class="btn" id="sendBtn" onclick="sendLink()">ログイン用リンクを送信</button>
+    </div>
+    <div id="step2" style="display:none">
+      <p><b id="sentTo"></b> 宛にログイン用リンクを送信しました。<br>メールを開き、記載のリンクをタップするとログインできます。<br><span style="color:var(--muted);font-size:.76rem">届かない場合は迷惑メールフォルダもご確認ください。</span></p>
+      <button class="btn" style="background:#fff;color:var(--blue-mid);border:1.5px solid var(--blue-line);box-shadow:none" onclick="resetGate()">戻る</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+
+<!-- 管理コンソール -->
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="t">ナーチャリング管理コンソール<small>株式会社 MERONE</small></div>
+    <div class="r"><span class="who" id="who"></span><button onclick="logout()">ログアウト</button></div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div class="frame-wrap"><iframe id="frame" title="board"></iframe></div>
+</div>
+
+<script>
+let sb=null;
+if(SUPABASE_CONFIG.enabled && window.supabase){ sb=window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey); }
+const NAME_FALLBACK={ riet:'リエット', famm:'Famm', abcash:'ABCash' };
+
+function msg(t,type){ const e=document.getElementById('msg'); e.textContent=t||''; e.className='msg'+(type?' '+type:''); }
+function showGate(){ document.getElementById('gate').classList.remove('hide'); document.getElementById('app').classList.remove('on'); }
+function showApp(){ document.getElementById('gate').classList.add('hide'); document.getElementById('app').classList.add('on'); }
+function resetGate(){ document.getElementById('step1').style.display=''; document.getElementById('step2').style.display='none'; msg(''); }
+
+async function sendLink(){
+  const email=(document.getElementById('email').value||'').trim().toLowerCase();
+  if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ msg('メールアドレスを正しくご入力ください','err'); return; }
+  const b=document.getElementById('sendBtn'); b.disabled=true; b.textContent='送信中…';
+  const {error}=await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
+  b.disabled=false; b.textContent='ログイン用リンクを送信';
+  if(error){ msg('送信エラー：'+error.message,'err'); return; }
+  document.getElementById('sentTo').textContent=email;
+  document.getElementById('step1').style.display='none';
+  document.getElementById('step2').style.display='';
+}
+async function logout(){ if(sb) await sb.auth.signOut(); location.reload(); }
+
+async function evalAdmin(session){
+  if(!session || !session.user){ showGate(); return; }
+  const email=(session.user.email||'').toLowerCase();
+  let rows=[];
+  try{ const {data}=await sb.from('nurture_access').select('board_id,role_hint').eq('email',email); rows=data||[]; }catch(e){}
+  // 管理者（role_hint=kumiko）のボードのみ。デモ用 client1 は除外
+  const boards=rows.filter(r=>r.role_hint==='kumiko' && r.board_id!=='client1').map(r=>r.board_id);
+  if(!boards.length){
+    await sb.auth.signOut(); showGate(); resetGate();
+    msg('この管理コンソールは株式会社Meroneの管理者専用です。','err'); return;
+  }
+  document.getElementById('who').textContent=email;
+  // ボード名を meta から取得
+  let metas=[];
+  try{ const {data}=await sb.from('nurture_meta').select('board_id,title,client_label').in('board_id',boards); metas=data||[]; }catch(e){}
+  const nameOf=b=>{ const m=metas.find(x=>x.board_id===b); return (m&&m.client_label)||NAME_FALLBACK[b]||b; };
+  // 表示順：riet, famm, abcash, その他
+  const order=['riet','famm','abcash'];
+  boards.sort((a,b)=>{ const ia=order.indexOf(a), ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+  buildTabs(boards, nameOf);
+  showApp();
+}
+function buildTabs(boards, nameOf){
+  const tabsEl=document.getElementById('tabs'); tabsEl.innerHTML='';
+  boards.forEach((b,i)=>{
+    const btn=document.createElement('button');
+    btn.className='tab '+b+(i===0?' active':'');
+    btn.innerHTML='<span class="dot"></span>'+esc(nameOf(b));
+    btn.onclick=()=>selectTab(b, btn);
+    tabsEl.appendChild(btn);
+  });
+  if(boards.length) selectTab(boards[0], tabsEl.querySelector('.tab'));
+}
+let curBoard=null;
+function selectTab(board, btn){
+  if(curBoard!==board){
+    curBoard=board;
+    document.getElementById('frame').src='index.html?board='+encodeURIComponent(board);
+  }
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+}
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// 起動
+(async function(){
+  if(!sb){ msg('接続設定が未構成です','err'); return; }
+  sb.auth.onAuthStateChange((_e,session)=>{ evalAdmin(session); });
+  const { data:{ session } }=await sb.auth.getSession();
+  await evalAdmin(session);
+})();
+</script>
+</body>
+</html>

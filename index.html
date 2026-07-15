@@ -354,7 +354,7 @@ details.rec .rec-body{padding:0 18px 18px}
       <div>
         <div class="h-title"><span id="boardTitle">ナーチャリング共有ボード</span>
           <span class="edit" onclick="openSettings(false)">名称を編集</span></div>
-        <div class="h-sub">くみこ ／ <span id="clientLabelSub">クライアント</span>　タスク・課題・議題を相互に共有</div>
+        <div class="h-sub">株式会社Merone ／ <span id="clientLabelSub">クライアント</span>　タスク・目標・進捗を相互に共有</div>
       </div>
       <div class="who">表示中：<b id="whoName">－</b> <button onclick="switchRole()">切替</button></div>
     </div>
@@ -369,7 +369,7 @@ details.rec .rec-body{padding:0 18px 18px}
       <summary>議事録・メモを貼り付けて自動仕分け</summary>
       <div style="padding:12px 0 0">
         <textarea id="pasteBox" class="paste-box" placeholder="例）
-・くみこ → LT1の配信文を金曜までに送る
+・株式会社Merone → LT1の配信文を金曜までに送る
 ・◯◯様はリッチメニューの画像を用意
 決定：初回配信は夜21時に固定"></textarea>
         <div class="paste-actions">
@@ -380,10 +380,10 @@ details.rec .rec-body{padding:0 18px 18px}
     </details>
     <div class="cols" style="margin-top:14px">
       <div class="col kumiko">
-        <div class="col-head"><span>くみこ<span class="mine-badge" id="mineK" style="display:none">あなた</span></span><span class="cnt" id="cntK">0</span></div>
+        <div class="col-head"><span>株式会社Merone<span class="mine-badge" id="mineK" style="display:none">あなた</span></span><span class="cnt" id="cntK">0</span></div>
         <ul class="tasklist" id="listK"></ul>
         <div class="addrow">
-          <input id="addK" placeholder="くみこのタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('kumiko')">
+          <input id="addK" placeholder="株式会社Meroneのタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('kumiko')">
           <button onclick="quickAdd('kumiko')">＋</button>
         </div>
       </div>
@@ -433,7 +433,7 @@ details.rec .rec-body{padding:0 18px 18px}
     <div class="desc">「今どんな作業をしているか」「どのくらい進んでいるか」を書いておくと、相手にリアルタイムで共有されます（自動保存）。困っている点もここに書けます。</div>
     <div class="stuck-grid">
       <div class="stuck kumiko">
-        <label>くみこ ｜ 今の作業・進捗</label>
+        <label>株式会社Merone ｜ 今の作業・進捗</label>
         <textarea id="stuckK" oninput="stuckDirty('kumiko')" placeholder="例）LT1配信文を作成中。金曜午前に共有予定（進捗7割）"></textarea>
         <div class="saved" id="savedK"></div>
       </div>
@@ -536,7 +536,7 @@ details.rec .rec-body{padding:0 18px 18px}
     <div class="setfield">
       <label>ご利用者の種別</label>
       <div class="rolepick">
-        <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> くみこ</label>
+        <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> 株式会社Merone</label>
         <label class="rolebtn"><input type="radio" name="setRole" value="client"> <span id="roleClientLabel">クライアント</span></label>
         <label class="rolebtn"><input type="radio" name="setRole" value="executive"> 役員</label>
       </div>
@@ -552,7 +552,7 @@ details.rec .rec-body{padding:0 18px 18px}
 <div class="overlay" id="pvOverlay">
   <div class="modal">
     <h3>仕分けプレビュー</h3>
-    <div class="desc">担当（くみこ / クライアント）をご確認のうえ、不要な行は × で削除してください。「議題」はログへ、「タスク」は一覧へ登録されます。</div>
+    <div class="desc">担当（株式会社Merone / クライアント）をご確認のうえ、不要な行は × で削除してください。「議題」はログへ、「タスク」は一覧へ登録されます。</div>
     <div id="pvList"></div>
     <div class="modal-actions">
       <button class="btn ghost" onclick="closePreview()">キャンセル</button>
@@ -608,7 +608,7 @@ function switchRole(){
   paintRole();
 }
 function paintRole(){
-  const name = ROLE==='kumiko' ? 'くみこ' : ROLE==='executive' ? '役員' : META.client_label;
+  const name = ROLE==='kumiko' ? '株式会社Merone' : ROLE==='executive' ? '役員' : META.client_label;
   document.getElementById('whoName').textContent = name;
   document.getElementById('mineK').style.display = ROLE==='kumiko' ? '' : 'none';
   document.getElementById('mineC').style.display = ROLE==='client' ? '' : 'none';
@@ -802,7 +802,7 @@ function renderTopics(){
   TOPICS.forEach(tp=>{
     const li=document.createElement('li');
     const d=new Date(tp.created_at);
-    const who = tp.author==='kumiko'?'くみこ':(META.client_label||'相手');
+    const who = tp.author==='kumiko'?'株式会社Merone':(META.client_label||'相手');
     li.innerHTML='<div>'+esc(tp.content)+'</div>'+
       '<div class="meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+'</span>'+
       '<span class="tdel" onclick="delTopic(\''+tp.id+'\')">削除</span></div>';
@@ -832,7 +832,7 @@ async function patchRow(table,arr,id,patch,rerender){
   const i=arr.findIndex(x=>x.id===id); if(i>=0)arr[i]=data; if(rerender)rerender();
 }
 function fmtDate(s){ if(!s)return''; const p=String(s).slice(0,10).split('-'); return p.length===3?(+p[1])+'/'+(+p[2]):esc(s); }
-function ownerLabel(o){ return o==='kumiko'?'くみこ':o==='client'?(META.client_label||'クライアント'):o==='executive'?'役員':esc(o); }
+function ownerLabel(o){ return o==='kumiko'?'株式会社Merone':o==='client'?(META.client_label||'クライアント'):o==='executive'?'役員':esc(o); }
 
 // ============================================================
 // 経営：期待・注視指標（役員／くみこが編集、担当者は閲覧）
@@ -939,7 +939,7 @@ function renderExecNotes(){
     arr.forEach(n=>{
       const li=document.createElement('li');
       const d=new Date(n.created_at);
-      const who=n.author==='executive'?'役員':n.author==='kumiko'?'くみこ':ownerLabel(n.author);
+      const who=n.author==='executive'?'役員':n.author==='kumiko'?'株式会社Merone':ownerLabel(n.author);
       li.innerHTML='<div class="n-body">'+esc(n.body)+'</div>'+
         '<div class="n-meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+'</span>'+
         (canEdit?'<span class="n-del" onclick="delExecNote(\''+n.id+'\')">削除</span>':'')+'</div>';
@@ -1101,7 +1101,7 @@ function stuckDirty(owner){
 // 貼り付け → 仕分け（ヒューリスティック）
 // ============================================================
 const TASK_HINT=/(する|やる|作る|つくる|送る|送信|用意|準備|書く|考える|チェック|確認|設計|修正|対応|共有|連絡|提出|決める|まとめる|見直す|返信|作成|依頼|手配|予約|設定|アップ|投稿|撮る|募集|締め|〆|まで|TODO|ToDo|タスク|やること)/;
-const KUMIKO_HINT=/(くみこ|森川|もりくみ|私が|こちらで|弊社)/;
+const KUMIKO_HINT=/(くみこ|森川|もりくみ|Merone|メローネ|私が|こちらで|弊社)/;
 const TOPIC_HINT=/(決めたこと|決定|方針|共有事項|議題|話したこと|メモ：|メモ:|前提|背景|所感)/;
 
 function splitClean(text){
@@ -1143,7 +1143,7 @@ function renderPreview(){
       '<span class="pv-kind '+it.kind+'" onclick="pvToggleKind('+i+')" title="クリックでタスク⇄議題">'+(it.kind==='task'?'タスク':'議題')+'</span>'+
       '<input class="pv-title" value="'+esc(it.title).replace(/"/g,'&quot;')+'" oninput="pvData['+i+'].title=this.value">'+
       (it.kind==='task'
-        ? '<select onchange="pvData['+i+'].owner=this.value"><option value="kumiko"'+(it.owner==='kumiko'?' selected':'')+'>くみこ</option><option value="client"'+(it.owner==='client'?' selected':'')+'>'+esc(META.client_label)+'</option></select>'
+        ? '<select onchange="pvData['+i+'].owner=this.value"><option value="kumiko"'+(it.owner==='kumiko'?' selected':'')+'>株式会社Merone</option><option value="client"'+(it.owner==='client'?' selected':'')+'>'+esc(META.client_label)+'</option></select>'
         : '')+
       '<span class="rm" onclick="pvRemove('+i+')">×</span>';
     box.appendChild(row);
