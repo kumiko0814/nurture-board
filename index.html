@@ -141,6 +141,18 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 .pv-kind.topic{background:var(--purple-soft);color:var(--purple)}
 .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
 
+/* settings modal */
+.setfield{margin-bottom:16px}
+.setfield label{display:block;font-size:.85rem;font-weight:800;color:var(--navy);margin-bottom:6px}
+.setfield label .req{font-size:.65rem;font-weight:700;background:var(--pink-soft);color:var(--pink-deep);padding:1px 8px;border-radius:20px;margin-left:6px}
+.setfield input{width:100%;border:1.5px solid var(--blue-line);border-radius:12px;padding:11px 13px;font-size:.95rem;font-family:inherit}
+.setfield input:focus{outline:none;border-color:var(--pink)}
+.setfield .fhint{font-size:.72rem;color:var(--muted);margin-top:5px}
+.rolepick{display:flex;gap:10px;flex-wrap:wrap}
+.rolebtn{flex:1;min-width:130px;display:flex;align-items:center;gap:8px;border:1.5px solid var(--blue-line);border-radius:12px;padding:12px 14px;cursor:pointer;font-weight:700;font-size:.9rem;color:var(--ink);transition:.15s}
+.rolebtn:has(input:checked){border-color:var(--pink);background:var(--pink-soft);color:var(--pink-deep)}
+.rolebtn input{accent-color:var(--pink-deep)}
+
 /* ---------- footer / status ---------- */
 .statusbar{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:22px;font-size:.75rem;color:var(--muted);flex-wrap:wrap}
 .dot{width:9px;height:9px;border-radius:50%;background:#c9d3df}
@@ -165,7 +177,7 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
     <div class="h-top">
       <div>
         <div class="h-title"><span id="boardTitle">ナーチャリング共有ボード</span>
-          <span class="edit" onclick="editTitle()">✎ 名前変更</span></div>
+          <span class="edit" onclick="openSettings(false)">✎ 名前を編集</span></div>
         <div class="h-sub">くみこ ⇄ <span id="clientLabelSub">クライアント</span>　やること・つまずき・議題をリアルタイムで共有</div>
       </div>
       <div class="who">これは<b id="whoName">？</b>の画面 <button onclick="switchRole()">切替</button></div>
@@ -248,6 +260,35 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
   </div>
 </div>
 
+<!-- ===== settings modal (ボード名・クライアント名・役割) ===== -->
+<div class="overlay" id="setOverlay">
+  <div class="modal">
+    <h3>💗 ボードの設定</h3>
+    <div class="desc" id="setHint">はじめまして！このボードの名前と、相手（クライアント）のお名前を入れてください。あとからいつでも変えられます。</div>
+    <div class="setfield">
+      <label>クライアントのお名前 <span class="req">必須</span></label>
+      <input id="setClient" placeholder="例）田中さん / ○○株式会社" oninput="document.getElementById('roleClientLabel').textContent=this.value.trim()||'クライアント'">
+      <div class="fhint">ボードの💙側や表示名に使われます</div>
+    </div>
+    <div class="setfield">
+      <label>ボードの名前</label>
+      <input id="setTitle" placeholder="例）田中さん ナーチャリング進行ボード">
+      <div class="fhint">空欄なら「ナーチャリング共有ボード」になります</div>
+    </div>
+    <div class="setfield">
+      <label>あなたはどちらですか？</label>
+      <div class="rolepick">
+        <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> 💗 くみこ</label>
+        <label class="rolebtn"><input type="radio" name="setRole" value="client"> 💙 <span id="roleClientLabel">クライアント</span></label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeEl('setOverlay')">キャンセル</button>
+      <button class="btn" onclick="saveSettings()">💾 保存する</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== preview modal ===== -->
 <div class="overlay" id="pvOverlay">
   <div class="modal">
@@ -291,12 +332,10 @@ let pvData = [];
 // 役割（自分はどっち？）
 // ============================================================
 function ensureRole(){
-  if (ROLE !== 'kumiko' && ROLE !== 'client'){
-    const ans = confirm('あなたはどちらですか？\n\n「OK」＝くみこ\n「キャンセル」＝' + META.client_label);
-    ROLE = ans ? 'kumiko' : 'client';
-    localStorage.setItem('nurture_role', ROLE);
-  }
   paintRole();
+  // 初回：役割が未設定、またはクライアント名が未入力なら設定モーダルを自動で開く
+  const needsSetup = (ROLE!=='kumiko' && ROLE!=='client') || !META.client_label || META.client_label==='クライアント';
+  if (needsSetup) openSettings(true);
 }
 function switchRole(){
   ROLE = (ROLE === 'kumiko') ? 'client' : 'kumiko';
@@ -319,18 +358,32 @@ function applyMeta(){
   document.title = META.title || 'ナーチャリング共有ボード';
   paintRole();
 }
-async function editTitle(){
-  const t = prompt('ボードの名前は？', META.title);
-  if (t===null) return;
-  const c = prompt('相手（クライアント）の表示名は？', META.client_label);
-  if (c===null) return;
-  META.title = t.trim() || META.title;
-  META.client_label = c.trim() || META.client_label;
+function openSettings(first){
+  // 既定値（デフォルトのままなら空欄にして入力を促す）
+  document.getElementById('setTitle').value  = (META.title && META.title!=='ナーチャリング共有ボード') ? META.title : '';
+  document.getElementById('setClient').value = (META.client_label && META.client_label!=='クライアント') ? META.client_label : '';
+  document.getElementById('roleClientLabel').textContent = document.getElementById('setClient').value.trim() || 'クライアント';
+  // 役割ラジオの初期選択
+  document.querySelectorAll('input[name="setRole"]').forEach(r=>{ r.checked = (r.value===ROLE); });
+  document.getElementById('setHint').style.display = first ? 'block' : 'none';
+  document.getElementById('setOverlay').classList.add('on');
+  setTimeout(()=>document.getElementById('setClient').focus(),50);
+}
+async function saveSettings(){
+  const c = document.getElementById('setClient').value.trim();
+  if(!c){ toast('クライアントのお名前を入れてね'); document.getElementById('setClient').focus(); return; }
+  const t = document.getElementById('setTitle').value.trim();
+  META.client_label = c;
+  META.title = t || 'ナーチャリング共有ボード';
+  const r = document.querySelector('input[name="setRole"]:checked');
+  if(r){ ROLE = r.value; localStorage.setItem('nurture_role', ROLE); }
   applyMeta();
-  if (sb){
+  if(sb){
     await sb.from('nurture_meta').upsert({ board_id:BID, title:META.title, client_label:META.client_label, updated_at:new Date().toISOString() });
-    toast('ボード名を保存しました');
   }
+  closeEl('setOverlay');
+  renderTopics();
+  toast('保存しました✨');
 }
 
 // ============================================================
