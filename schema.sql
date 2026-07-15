@@ -91,6 +91,21 @@ CREATE TABLE IF NOT EXISTS nurture_deliverables (
   created_at   TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- directives に「数字の成果」列を追加（目標 vs 現在値で可視化）
+ALTER TABLE nurture_directives ADD COLUMN IF NOT EXISTS metric_label  TEXT DEFAULT '';  -- 指標名（例：成約率）
+ALTER TABLE nurture_directives ADD COLUMN IF NOT EXISTS target_value  TEXT DEFAULT '';  -- 目標値
+ALTER TABLE nurture_directives ADD COLUMN IF NOT EXISTS current_value TEXT DEFAULT '';  -- 現在値
+ALTER TABLE nurture_directives ADD COLUMN IF NOT EXISTS unit          TEXT DEFAULT '';  -- 単位（%・件 等）
+
+-- 8. 役員コメント・指示（役員が要望を記入、担当者が確認）
+CREATE TABLE IF NOT EXISTS nurture_exec_notes (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  board_id    TEXT NOT NULL DEFAULT 'client1',
+  body        TEXT NOT NULL,
+  author      TEXT DEFAULT 'executive',
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ------------------------------------------------------------
 -- RLS：許可アドレスでログインした人だけ CRUD 可（anonは全拒否）
 -- 許可アドレスを増減したい時は、下の ARRAY[...] の中身を編集して再RUN
@@ -102,13 +117,14 @@ ALTER TABLE nurture_meta         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nurture_directives   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nurture_issues       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE nurture_deliverables ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nurture_exec_notes   ENABLE ROW LEVEL SECURITY;
 
 DO $$
 DECLARE
   t TEXT;
   emails TEXT := '''4morikawa5@gmail.com'',''k.morikawa@merone.jp'',''anchidaietrieyoshida@gmail.com''';
 BEGIN
-  FOREACH t IN ARRAY ARRAY['nurture_tasks','nurture_topics','nurture_stuck','nurture_meta','nurture_directives','nurture_issues','nurture_deliverables']
+  FOREACH t IN ARRAY ARRAY['nurture_tasks','nurture_topics','nurture_stuck','nurture_meta','nurture_directives','nurture_issues','nurture_deliverables','nurture_exec_notes']
   LOOP
     -- 旧anonポリシーを削除（前の公開版から作り替えるため）
     EXECUTE format('DROP POLICY IF EXISTS "anon_select" ON %I;', t);

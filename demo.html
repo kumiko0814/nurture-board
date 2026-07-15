@@ -211,7 +211,49 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 .exec-form .row2{display:flex;gap:8px;justify-content:flex-end}
 .exec-add-btn{background:#f0c869;color:var(--navy-deep);border:none;border-radius:20px;padding:7px 16px;
   font-weight:800;font-size:.8rem;cursor:pointer}
-.exec-viewonly{font-size:.72rem;opacity:.7;margin-top:10px}
+.exec-viewonly{font-size:.72rem;opacity:.7;margin-top:12px}
+.exec-block{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:14px;margin-top:14px}
+.exec-block-head{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;font-weight:800;letter-spacing:.02em;margin-bottom:4px}
+.form-row{display:flex;gap:8px}
+.form-row .w-unit{max-width:120px}
+/* KPIカード */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+@media(max-width:720px){.kpi-grid{grid-template-columns:1fr}}
+.kpi{background:#fff;color:var(--ink);border-radius:13px;padding:14px;position:relative}
+.kpi.achieved{opacity:.72}
+.kpi-label{font-size:.74rem;font-weight:800;color:var(--blue-mid);letter-spacing:.02em}
+.kpi-nums{display:flex;align-items:baseline;gap:8px;margin-top:5px;flex-wrap:wrap}
+.kpi-nums .cur{font-size:1.7rem;font-weight:800;color:var(--navy);line-height:1}
+.kpi-nums .cur .u,.kpi-nums .tgt .u{font-size:.9rem;font-weight:700;margin-left:1px}
+.kpi-nums .sep{font-size:.72rem;color:var(--muted)}
+.kpi-nums .tgt{font-size:1.05rem;font-weight:800;color:var(--pink-deep)}
+.kpi-bar{height:9px;background:#eef2f7;border-radius:20px;overflow:hidden;margin-top:9px}
+.kpi-bar > i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,var(--blue),#f0c869);transition:width .5s}
+.kpi-bar.done > i{background:linear-gradient(90deg,#8CC152,var(--ok))}
+.kpi-pct{font-size:.68rem;color:var(--muted);margin-top:4px;text-align:right}
+.kpi-title{font-size:.85rem;font-weight:700;color:var(--ink);margin-top:9px;line-height:1.5}
+.kpi-body{font-size:.76rem;color:var(--muted);margin-top:4px;white-space:pre-wrap;line-height:1.6}
+.kpi-actions{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.kpi-actions button{font-size:.66rem;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:14px;padding:3px 10px;cursor:pointer}
+.kpi-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
+.kpi-actions .upd{border-color:var(--pink-line);color:var(--pink-deep)}
+/* 役員コメント */
+.exec-note-form textarea{width:100%;border:none;border-radius:10px;padding:11px 13px;font-family:inherit;font-size:.88rem;color:var(--ink);min-height:56px;resize:vertical;margin-bottom:8px}
+.exec-note-list{list-style:none;margin-top:6px}
+.exec-note-list li{background:#fff;color:var(--ink);border-radius:11px;padding:11px 13px;margin-bottom:8px;border-left:4px solid #f0c869}
+.exec-note-list .n-body{font-size:.87rem;line-height:1.65;white-space:pre-wrap}
+.exec-note-list .n-meta{font-size:.68rem;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between;align-items:center}
+.exec-note-list .n-del{cursor:pointer;color:var(--muted)}
+/* 折りたたみ記録 */
+details.rec{background:#fff;border-radius:16px;margin-top:14px;box-shadow:var(--shadow);overflow:hidden}
+details.rec > summary{list-style:none;cursor:pointer;padding:16px 18px;font-size:.98rem;font-weight:700;color:var(--navy);
+  display:flex;align-items:center;gap:8px;user-select:none}
+details.rec > summary::-webkit-details-marker{display:none}
+details.rec > summary::before{content:"▸";color:var(--blue-mid);font-size:.9rem;transition:transform .2s}
+details.rec[open] > summary::before{transform:rotate(90deg)}
+details.rec > summary:hover{background:var(--blue-soft)}
+details.rec .rec-cnt{font-size:.7rem;font-weight:700;color:var(--blue-mid);background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:20px;padding:1px 9px;margin-left:2px}
+details.rec .rec-body{padding:0 18px 18px}
 
 /* ---------- 課題トラッカー ---------- */
 .issue-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -302,40 +344,44 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
     <div class="progress"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
   </header>
 
-  <!-- ===== 経営セクション（役員） ===== -->
+  <!-- ===== 経営ダッシュボード ===== -->
   <div class="exec-section">
-    <div class="exec-head">
-      <h2><span class="exec-badge">経営</span>経営からの期待・注視指標</h2>
-      <button class="exec-add-btn" id="dirAddBtn" onclick="toggleDirForm()" style="display:none">＋ 期待を追加</button>
-    </div>
-    <div class="exec-desc">役員が期待する成果と「追うべき数値」を明示します。各担当者はここを確認し、現場と経営の認識を揃えてください。</div>
-    <div class="exec-form" id="dirForm">
-      <input id="dirTitle" placeholder="期待・方針の見出し（例：初回面談からの成約率を引き上げる）">
-      <textarea id="dirBody" placeholder="背景・意図・補足（任意）"></textarea>
-      <input id="dirMetric" placeholder="追うべき数値／KPI（例：成約率 15% → 20%、月間20件）">
-      <div class="row2">
-        <button class="btn ghost" onclick="toggleDirForm()">キャンセル</button>
-        <button class="btn" onclick="addDirective()">登録</button>
-      </div>
-    </div>
-    <div id="dirList"></div>
-    <div class="exec-empty" id="dirEmpty">まだ登録がありません。</div>
-    <div class="exec-viewonly" id="dirViewonly" style="display:none">※ この欄の編集は役員のみ可能です（担当者は閲覧のみ）。</div>
-  </div>
+    <div class="exec-head"><h2><span class="exec-badge">経営</span>経営ダッシュボード</h2></div>
+    <div class="exec-desc">注視する数値の「目標と現在値」、および役員からの指示を集約します。担当者はまずここを確認し、追うべき数字と優先事項を揃えてください。</div>
 
-  <!-- ===== 議題アップ ===== -->
-  <div class="section">
-    <h2>議題を登録 <span class="tag">貼り付けで半自動仕分け</span></h2>
-    <div class="desc">打ち合わせのメモや議事録のテキストを貼り付けて「仕分け」を押すと、タスクと議題ログに自動で振り分けます。内容は次の画面で修正できます。</div>
-    <textarea id="pasteBox" class="paste-box" placeholder="例）
-・くみこ → LT1の配信文を金曜までに送る
-・◯◯さんはリッチメニューの画像を用意
-今日決めたこと：初回配信は夜21時に固定
-つまずき：ステップ2の分岐条件がまだ曖昧"></textarea>
-    <div class="paste-actions">
-      <button class="btn" onclick="parseAndPreview()">仕分け</button>
-      <button class="btn ghost" onclick="document.getElementById('pasteBox').value=''">クリア</button>
+    <div class="exec-block">
+      <div class="exec-block-head"><span>注視KPI（目標と現在値）</span>
+        <button class="exec-add-btn" id="dirAddBtn" onclick="toggleDirForm()" style="display:none">＋ KPIを追加</button></div>
+      <div class="exec-form" id="dirForm">
+        <input id="dirTitle" placeholder="ねらい・見出し（例：初回面談からの成約率を引き上げる）">
+        <div class="form-row">
+          <input id="dirMetricLabel" placeholder="指標名（例：成約率）">
+          <input id="dirUnit" class="w-unit" placeholder="単位（例：%・件）">
+        </div>
+        <div class="form-row">
+          <input id="dirTarget" placeholder="目標値（例：20）">
+          <input id="dirCurrent" placeholder="現在値（例：16）">
+        </div>
+        <textarea id="dirBody" placeholder="背景・意図（任意）"></textarea>
+        <div class="row2">
+          <button class="btn ghost" onclick="toggleDirForm()">キャンセル</button>
+          <button class="btn" onclick="addDirective()">登録</button>
+        </div>
+      </div>
+      <div class="kpi-grid" id="dirList"></div>
+      <div class="exec-empty" id="dirEmpty">まだKPIの登録がありません。</div>
     </div>
+
+    <div class="exec-block">
+      <div class="exec-block-head"><span>役員からの指示・コメント</span></div>
+      <div class="exec-note-form" id="execNoteForm" style="display:none">
+        <textarea id="execNoteBody" placeholder="例）面談後フォローの精度を最優先に。次はLP離脱の課題に着手してほしい。"></textarea>
+        <div class="row2"><button class="btn" onclick="addExecNote()">投稿</button></div>
+      </div>
+      <ul class="exec-note-list" id="execNoteList"></ul>
+      <div class="exec-empty" id="execNoteEmpty">まだコメントはありません。</div>
+    </div>
+    <div class="exec-viewonly" id="dirViewonly" style="display:none">KPI・指示の編集は役員（および弊社）のみ可能です。担当者は閲覧のみとなります。</div>
   </div>
 
   <!-- ===== ToDo 2人分 ===== -->
@@ -387,55 +433,53 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
     </div>
   </div>
 
-  <!-- ===== つまずき ===== -->
-  <div class="section">
-    <h2>現在の課題 <span class="tag">相互に共有</span></h2>
-    <div class="desc">現在停滞している点を記入しておくと、相手先が先回りで対応できます。内容は自動保存されます。</div>
-    <div class="stuck-grid">
-      <div class="stuck kumiko">
-        <label>くみこの課題</label>
-        <textarea id="stuckK" oninput="stuckDirty('kumiko')" placeholder="例）配信文のトーンについて確認したい点があります"></textarea>
-        <div class="saved" id="savedK"></div>
-      </div>
-      <div class="stuck client">
-        <label><span class="clientLabel">クライアント</span>の課題</label>
-        <textarea id="stuckC" oninput="stuckDirty('client')" placeholder="例）Lステップの分岐設定について相談したい"></textarea>
-        <div class="saved" id="savedC"></div>
+  <!-- ===== 記録（折りたたみ・普段は閉じておく） ===== -->
+  <details class="rec">
+    <summary>議題を登録（メモを貼り付けて自動仕分け）</summary>
+    <div class="rec-body">
+      <div class="desc">打ち合わせのメモや議事録を貼り付けて「仕分け」を押すと、タスクと議題ログに自動で振り分けます。内容は次の画面で修正できます。</div>
+      <textarea id="pasteBox" class="paste-box" placeholder="例）
+・くみこ → LT1の配信文を金曜までに送る
+・◯◯様はリッチメニューの画像を用意
+決定：初回配信は夜21時に固定"></textarea>
+      <div class="paste-actions">
+        <button class="btn" onclick="parseAndPreview()">仕分け</button>
+        <button class="btn ghost" onclick="document.getElementById('pasteBox').value=''">クリア</button>
       </div>
     </div>
-  </div>
+  </details>
 
-  <!-- ===== 議題ログ ===== -->
-  <div class="section">
-    <h2>議題ログ <span class="tag">協議事項・決定事項</span></h2>
-    <div class="desc">仕分けで「議題」に振り分けた内容がここに時系列で溜まります。</div>
-    <ul class="topic-log" id="topicLog"></ul>
-    <div class="empty-note" id="topicEmpty">まだ議題ログはありません。上の「議題をアップ」から追加できます。</div>
-  </div>
-
-  <!-- ===== 成果物ログ ===== -->
-  <div class="section">
-    <h2>成果物ログ <span class="tag">弊社提出物の記録</span></h2>
-    <div class="desc">提出したレポート・バナー・LP・配信文などを蓄積します。都度ファイルを探さずに、ここから過去の提出物を追えます。</div>
-    <button class="mini-add" onclick="toggleDelivForm()">＋ 成果物を追加</button>
-    <div class="subform" id="delivForm">
-      <input id="delivTitle" placeholder="タイトル（例：7月勉強会 募集バナー 3種）">
-      <select id="delivCat">
-        <option value="">種別を選択</option>
-        <option>レポート</option><option>バナー</option><option>LP</option>
-        <option>配信文</option><option>資料</option><option>議事録</option><option>その他</option>
-      </select>
-      <input id="delivUrl" placeholder="リンク（Google Drive / Docs 等のURL・任意）">
-      <textarea id="delivSummary" placeholder="概要・補足（任意）"></textarea>
-      <input id="delivDate" type="date">
-      <div class="row2">
-        <button class="btn ghost" onclick="toggleDelivForm()">キャンセル</button>
-        <button class="btn" onclick="addDeliverable()">登録</button>
-      </div>
+  <details class="rec">
+    <summary>議題ログ（協議・決定事項）<span class="rec-cnt" id="topicCnt"></span></summary>
+    <div class="rec-body">
+      <ul class="topic-log" id="topicLog"></ul>
+      <div class="empty-note" id="topicEmpty">まだ議題ログはありません。</div>
     </div>
-    <ul class="deliv-list" id="delivList" style="margin-top:12px"></ul>
-    <div class="empty-note" id="delivEmpty">まだ成果物の記録はありません。</div>
-  </div>
+  </details>
+
+  <details class="rec">
+    <summary>成果物ログ（弊社提出物）<span class="rec-cnt" id="delivCnt"></span></summary>
+    <div class="rec-body">
+      <button class="mini-add" onclick="toggleDelivForm()">＋ 成果物を追加</button>
+      <div class="subform" id="delivForm">
+        <input id="delivTitle" placeholder="タイトル（例：7月勉強会 募集バナー 3種）">
+        <select id="delivCat">
+          <option value="">種別を選択</option>
+          <option>レポート</option><option>バナー</option><option>LP</option>
+          <option>配信文</option><option>資料</option><option>議事録</option><option>その他</option>
+        </select>
+        <input id="delivUrl" placeholder="リンク（Google Drive / Docs 等のURL・任意）">
+        <textarea id="delivSummary" placeholder="概要・補足（任意）"></textarea>
+        <input id="delivDate" type="date">
+        <div class="row2">
+          <button class="btn ghost" onclick="toggleDelivForm()">キャンセル</button>
+          <button class="btn" onclick="addDeliverable()">登録</button>
+        </div>
+      </div>
+      <ul class="deliv-list" id="delivList" style="margin-top:12px"></ul>
+      <div class="empty-note" id="delivEmpty">まだ成果物の記録はありません。</div>
+    </div>
+  </details>
 
   <!-- ===== status ===== -->
   <div class="statusbar">
@@ -511,7 +555,7 @@ const BID = SUPABASE_CONFIG.boardId || 'client1';
 let sb = makeSB();
 let ROLE = localStorage.getItem('nurture_role'); // 'kumiko' | 'client'
 let META = { title:'ナーチャリング共有ボード', client_label:'クライアント' };
-let TASKS = [], TOPICS = [], DIRECTIVES = [], ISSUES = [], DELIVS = [];
+let TASKS = [], TOPICS = [], DIRECTIVES = [], ISSUES = [], DELIVS = [], EXEC_NOTES = [];
 let pvData = [];
 function isExec(){ return ROLE==='executive'; }
 function canEditDirectives(){ return ROLE==='executive' || ROLE==='kumiko'; }
@@ -541,8 +585,10 @@ function paintRole(){
   if(addBtn) addBtn.style.display = canDir ? '' : 'none';
   const vo = document.getElementById('dirViewonly');
   if(vo) vo.style.display = canDir ? 'none' : 'block';
+  const nf = document.getElementById('execNoteForm');
+  if(nf) nf.style.display = canDir ? 'block' : 'none';
   if(!canDir){ const f=document.getElementById('dirForm'); if(f) f.classList.remove('on'); }
-  renderDirectives();
+  renderDirectives(); renderExecNotes();
 }
 
 // ============================================================
@@ -589,20 +635,21 @@ async function saveSettings(){
 async function loadAll(manual){
   if(!sb){ setConn(false,'未接続：supabase_config.js を確認'); return; }
   try{
-    const [m,t,tp,st,dir,iss,dlv] = await Promise.all([
+    const [m,t,tp,st,dir,iss,dlv,en] = await Promise.all([
       sb.from('nurture_meta').select('*').eq('board_id',BID).maybeSingle(),
       sb.from('nurture_tasks').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
       sb.from('nurture_topics').select('*').eq('board_id',BID).order('created_at',{ascending:false}),
       sb.from('nurture_stuck').select('*').eq('board_id',BID),
       sb.from('nurture_directives').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
       sb.from('nurture_issues').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:false}),
-      sb.from('nurture_deliverables').select('*').eq('board_id',BID).order('delivered_on',{ascending:false}).order('created_at',{ascending:false})
+      sb.from('nurture_deliverables').select('*').eq('board_id',BID).order('delivered_on',{ascending:false}).order('created_at',{ascending:false}),
+      sb.from('nurture_exec_notes').select('*').eq('board_id',BID).order('created_at',{ascending:false})
     ]);
     if(m.data){ META.title=m.data.title||META.title; META.client_label=m.data.client_label||META.client_label; }
     applyMeta();
     TASKS = t.data||[]; TOPICS = tp.data||[];
-    DIRECTIVES = dir.data||[]; ISSUES = iss.data||[]; DELIVS = dlv.data||[];
-    renderTasks(); renderTopics(); renderDirectives(); renderIssues(); renderDeliverables();
+    DIRECTIVES = dir.data||[]; ISSUES = iss.data||[]; DELIVS = dlv.data||[]; EXEC_NOTES = en.data||[];
+    renderTasks(); renderTopics(); renderDirectives(); renderIssues(); renderDeliverables(); renderExecNotes();
     // stuck（自分が編集中の欄は上書きしない）
     (st.data||[]).forEach(row=>{
       const el = row.owner==='kumiko' ? document.getElementById('stuckK') : document.getElementById('stuckC');
@@ -718,6 +765,7 @@ function renderTopics(){
   const ul=document.getElementById('topicLog');
   ul.innerHTML='';
   document.getElementById('topicEmpty').style.display = TOPICS.length?'none':'block';
+  const tc=document.getElementById('topicCnt'); if(tc) tc.textContent = TOPICS.length?TOPICS.length:'';
   TOPICS.forEach(tp=>{
     const li=document.createElement('li');
     const d=new Date(tp.created_at);
@@ -757,6 +805,7 @@ function ownerLabel(o){ return o==='kumiko'?'くみこ':o==='client'?(META.clien
 // 経営：期待・注視指標（役員／くみこが編集、担当者は閲覧）
 // ============================================================
 function toggleDirForm(){ if(!canEditDirectives())return; document.getElementById('dirForm').classList.toggle('on'); }
+function numOr(v){ const n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; }
 function renderDirectives(){
   const list=document.getElementById('dirList'); if(!list) return;
   list.innerHTML='';
@@ -764,12 +813,27 @@ function renderDirectives(){
   const canEdit=canEditDirectives();
   DIRECTIVES.forEach(d=>{
     const el=document.createElement('div');
-    el.className='directive'+(d.status==='achieved'?' achieved':'');
-    let html='<div class="d-title">'+esc(d.title)+'</div>';
-    if(d.body) html+='<div class="d-body">'+esc(d.body)+'</div>';
-    if(d.metric) html+='<div class="d-metric"><span class="lbl">追うべき数値／KPI</span>'+esc(d.metric)+'</div>';
+    el.className='kpi'+(d.status==='achieved'?' achieved':'');
+    const tgt=numOr(d.target_value), cur=numOr(d.current_value);
+    const u=d.unit?('<span class="u">'+esc(d.unit)+'</span>'):'';
+    let html='';
+    if(d.metric_label) html+='<div class="kpi-label">'+esc(d.metric_label)+'</div>';
+    if(cur!==null || tgt!==null){
+      html+='<div class="kpi-nums">'+
+        '<span class="cur">'+(cur!==null?esc(d.current_value):'—')+(cur!==null?u:'')+'</span>'+
+        '<span class="sep">/ 目標</span>'+
+        '<span class="tgt">'+(tgt!==null?esc(d.target_value):'—')+(tgt!==null?u:'')+'</span></div>';
+      if(cur!==null && tgt!==null && tgt!==0){
+        let pct=Math.round(cur/tgt*100); pct=Math.max(0,Math.min(100,pct));
+        html+='<div class="kpi-bar'+(pct>=100?' done':'')+'"><i style="width:'+pct+'%"></i></div>'+
+              '<div class="kpi-pct">達成度 '+pct+'%</div>';
+      }
+    }
+    html+='<div class="kpi-title">'+esc(d.title)+'</div>';
+    if(d.body) html+='<div class="kpi-body">'+esc(d.body)+'</div>';
     if(canEdit){
-      html+='<div class="d-actions">'+
+      html+='<div class="kpi-actions">'+
+        '<button class="upd" onclick="updateKpiCurrent(\''+d.id+'\')">現在値を更新</button>'+
         '<button onclick="toggleDirAchieved(\''+d.id+'\')">'+(d.status==='achieved'?'再開':'達成')+'</button>'+
         '<button onclick="editDirective(\''+d.id+'\')">編集</button>'+
         '<button onclick="delDirective(\''+d.id+'\')">削除</button>'+
@@ -781,23 +845,34 @@ function renderDirectives(){
 }
 async function addDirective(){
   if(!sb||!canEditDirectives())return;
-  const title=document.getElementById('dirTitle').value.trim();
+  const g=id=>document.getElementById(id).value.trim();
+  const title=g('dirTitle');
   if(!title){toast('見出しを入力してください');return;}
-  const body=document.getElementById('dirBody').value.trim();
-  const metric=document.getElementById('dirMetric').value.trim();
-  const {data,error}=await sb.from('nurture_directives').insert({board_id:BID,title,body,metric,author:ROLE,status:'active',sort_order:Date.now()}).select().single();
+  const row={board_id:BID,title,body:g('dirBody'),metric_label:g('dirMetricLabel'),
+    target_value:g('dirTarget'),current_value:g('dirCurrent'),unit:g('dirUnit'),
+    author:ROLE,status:'active',sort_order:Date.now()};
+  const {data,error}=await sb.from('nurture_directives').insert(row).select().single();
   if(error){toast('登録エラー');return;}
   DIRECTIVES.push(data);
-  document.getElementById('dirTitle').value='';document.getElementById('dirBody').value='';document.getElementById('dirMetric').value='';
+  ['dirTitle','dirBody','dirMetricLabel','dirTarget','dirCurrent','dirUnit'].forEach(x=>document.getElementById(x).value='');
   document.getElementById('dirForm').classList.remove('on');
   renderDirectives(); toast('登録しました');
 }
+async function updateKpiCurrent(id){
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
+  const v=prompt('現在値を入力してください'+(d.unit?'（単位：'+d.unit+'）':''),d.current_value||''); if(v===null)return;
+  await patchRow('nurture_directives',DIRECTIVES,id,{current_value:v.trim()},renderDirectives);
+  toast('現在値を更新しました');
+}
 async function editDirective(id){
   const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
-  const title=prompt('見出し',d.title); if(title===null)return;
+  const title=prompt('ねらい・見出し',d.title); if(title===null)return;
+  const label=prompt('指標名（例：成約率）',d.metric_label||''); if(label===null)return;
+  const target=prompt('目標値',d.target_value||''); if(target===null)return;
+  const current=prompt('現在値',d.current_value||''); if(current===null)return;
+  const unit=prompt('単位（例：%・件）',d.unit||''); if(unit===null)return;
   const body=prompt('背景・意図（任意）',d.body||''); if(body===null)return;
-  const metric=prompt('追うべき数値／KPI',d.metric||''); if(metric===null)return;
-  await patchRow('nurture_directives',DIRECTIVES,id,{title:title.trim(),body:body.trim(),metric:metric.trim()},renderDirectives);
+  await patchRow('nurture_directives',DIRECTIVES,id,{title:title.trim(),metric_label:label.trim(),target_value:target.trim(),current_value:current.trim(),unit:unit.trim(),body:body.trim()},renderDirectives);
 }
 async function toggleDirAchieved(id){
   const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
@@ -809,6 +884,38 @@ async function delDirective(id){
   if(!confirm('削除しますか？\n「'+d.title+'」'))return;
   await sb.from('nurture_directives').delete().eq('id',id);
   DIRECTIVES=DIRECTIVES.filter(x=>x.id!==id); renderDirectives();
+}
+
+// 役員コメント・指示
+function renderExecNotes(){
+  const ul=document.getElementById('execNoteList'); if(!ul) return;
+  ul.innerHTML='';
+  document.getElementById('execNoteEmpty').style.display = EXEC_NOTES.length?'none':'block';
+  const canEdit=canEditDirectives();
+  EXEC_NOTES.forEach(n=>{
+    const li=document.createElement('li');
+    const d=new Date(n.created_at);
+    const who=n.author==='executive'?'役員':n.author==='kumiko'?'くみこ':ownerLabel(n.author);
+    li.innerHTML='<div class="n-body">'+esc(n.body)+'</div>'+
+      '<div class="n-meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+'</span>'+
+      (canEdit?'<span class="n-del" onclick="delExecNote(\''+n.id+'\')">削除</span>':'')+'</div>';
+    ul.appendChild(li);
+  });
+}
+async function addExecNote(){
+  if(!sb||!canEditDirectives())return;
+  const el=document.getElementById('execNoteBody');
+  const body=el.value.trim(); if(!body){toast('コメントを入力してください');return;}
+  const {data,error}=await sb.from('nurture_exec_notes').insert({board_id:BID,body,author:ROLE}).select().single();
+  if(error){toast('投稿エラー');return;}
+  EXEC_NOTES.unshift(data); el.value='';
+  renderExecNotes(); toast('投稿しました');
+}
+async function delExecNote(id){
+  if(!canEditDirectives())return;
+  if(!confirm('このコメントを削除しますか？'))return;
+  await sb.from('nurture_exec_notes').delete().eq('id',id);
+  EXEC_NOTES=EXEC_NOTES.filter(x=>x.id!==id); renderExecNotes();
 }
 
 // ============================================================
@@ -890,6 +997,7 @@ function renderDeliverables(){
   const ul=document.getElementById('delivList'); if(!ul)return;
   ul.innerHTML='';
   document.getElementById('delivEmpty').style.display = DELIVS.length?'none':'block';
+  const dc=document.getElementById('delivCnt'); if(dc) dc.textContent = DELIVS.length?DELIVS.length:'';
   DELIVS.forEach(d=>{
     const li=document.createElement('li'); li.className='deliv-item';
     const titleHtml = d.url ? '<a href="'+esc(d.url)+'" target="_blank" rel="noopener">'+esc(d.title)+'</a>' : esc(d.title);
@@ -1027,6 +1135,7 @@ async function runDiag(){
   rows.push(await checkTable('nurture_directives'));
   rows.push(await checkTable('nurture_issues'));
   rows.push(await checkTable('nurture_deliverables'));
+  rows.push(await checkTable('nurture_exec_notes'));
   body.innerHTML = '<div><span>Supabase URL</span><span class="g">'+SUPABASE_CONFIG.url.replace('https://','')+'</span></div>'+
     '<div><span>ボードID</span><span class="g">'+BID+'</span></div>'+ rows.join('');
 }
@@ -1117,17 +1226,20 @@ function resetDemo(){ localStorage.removeItem('nurture_demo'); location.reload()
 function makeSB(){
   const SEED={
     nurture_meta:[{board_id:'client1',title:'○○株式会社 ナーチャリング進行ボード',client_label:'○○株式会社'}],
-    nurture_directives:[{id:'d1',board_id:'client1',title:'初回面談からの成約率を今期中に引き上げる',body:'今期の最重要テーマ。現場は面談後フォローの精度向上に集中してください。',metric:'成約率 15% → 20%（月間成約20件）',status:'active',author:'executive',sort_order:1}],
+    nurture_directives:[
+      {id:'d1',board_id:'client1',title:'初回面談からの成約率を今期中に引き上げる',body:'今期の最重要テーマ。現場は面談後フォローの精度向上に集中してください。',metric_label:'成約率',target_value:'20',current_value:'16',unit:'%',status:'active',author:'executive',sort_order:1},
+      {id:'d2',board_id:'client1',title:'月間の成約件数を安定させる',body:'',metric_label:'月間成約数',target_value:'20',current_value:'14',unit:'件',status:'active',author:'executive',sort_order:2}],
+    nurture_exec_notes:[
+      {id:'n1',board_id:'client1',body:'面談後フォローの精度を最優先でお願いします。翌日連絡の仕組み化を今週中に。',author:'executive',created_at:'2026-07-15T01:00:00Z'},
+      {id:'n2',board_id:'client1',body:'次はLP離脱の課題に着手してほしいです。数字が動いたら共有を。',author:'executive',created_at:'2026-07-14T02:00:00Z'}],
     nurture_tasks:[
       {id:'t1',board_id:'client1',title:'LT1の配信文を金曜までに送付',owner:'kumiko',status:'todo',memo:'',sort_order:1},
       {id:'t2',board_id:'client1',title:'リッチメニュー画像を用意',owner:'client',status:'done',memo:'',sort_order:2},
-      {id:'t3',board_id:'client1',title:'6月ファネル分析レポートを更新',owner:'kumiko',status:'doing',memo:'役員の注視KPIに合わせて成約率の内訳を追加',sort_order:3}],
+      {id:'t3',board_id:'client1',title:'翌日フォローのテンプレを整備',owner:'kumiko',status:'doing',memo:'役員指示：フォロー漏れ対策',sort_order:3}],
     nurture_topics:[
       {id:'p1',board_id:'client1',content:'初回配信は夜21時固定と決定',author:'kumiko',created_at:'2026-07-14T12:00:00Z'},
       {id:'p2',board_id:'client1',content:'面談リマインドは2通に削減する方針で合意',author:'client',created_at:'2026-07-13T09:00:00Z'}],
-    nurture_stuck:[
-      {board_id:'client1',owner:'kumiko',content:'配信文のトーンについて役員の意向を確認したい'},
-      {board_id:'client1',owner:'client',content:'Lステップの分岐設定で相談したい点があります'}],
+    nurture_stuck:[],
     nurture_issues:[
       {id:'i1',board_id:'client1',title:'面談後のフォロー漏れが発生している',detail:'翌日連絡が属人化しており抜けが出る',status:'in_progress',owner:'kumiko',resolution:'',opened_on:'2026-07-10',resolved_on:null,sort_order:1},
       {id:'i3',board_id:'client1',title:'配信過多によるブロック増加',detail:'',status:'open',owner:'kumiko',resolution:'',opened_on:'2026-07-12',resolved_on:null,sort_order:2},
@@ -1137,7 +1249,7 @@ function makeSB(){
       {id:'v2',board_id:'client1',title:'6月ファネル分析レポート',category:'レポート',url:'https://example.com',summary:'キャンセル率の要因分解と改善提案',delivered_on:'2026-07-02'}]
   };
   let DB; try{ DB=JSON.parse(localStorage.getItem('nurture_demo')); }catch(e){}
-  if(!DB){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem('nurture_demo',JSON.stringify(DB)); }
+  if(!DB || !DB.nurture_exec_notes){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem('nurture_demo',JSON.stringify(DB)); }
   let idc=1; const persist=()=>localStorage.setItem('nurture_demo',JSON.stringify(DB));
   class Q{
     constructor(t){this.t=t;this._op='select';this._f=[];this._row=null;this._single=false;this._maybe=false;this._orders=[];this._head=false;this._conflict=null;}
