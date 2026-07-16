@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS nurture_exec_notes (
 );
 
 -- 9. アクセス管理（ボードごとに「入れる人」を限定＝クライアント別に分離）
---    board_id ごとに許可メールを登録。Fammの人はFammだけ、リエットの人はリエットだけ見える。
+--    board_id ごとに許可メールを登録。あるボードの担当者は、そのボードだけが見える。
 CREATE TABLE IF NOT EXISTS nurture_access (
   board_id   TEXT NOT NULL,
   email      TEXT NOT NULL,
@@ -156,25 +156,14 @@ BEGIN
   END LOOP;
 END $$;
 
--- ボード別アクセス（くみこは全ボード／吉田さんはリエットのみ。Famm・ABCashのクライアント担当は後で追加）
-INSERT INTO nurture_access (board_id, email, role_hint) VALUES
-  ('client1','4morikawa5@gmail.com','kumiko'),
-  ('client1','k.morikawa@merone.jp','kumiko'),
-  ('riet','4morikawa5@gmail.com','kumiko'),
-  ('riet','k.morikawa@merone.jp','kumiko'),
-  ('riet','anchidaietrieyoshida@gmail.com','client'),
-  ('famm','4morikawa5@gmail.com','kumiko'),
-  ('famm','k.morikawa@merone.jp','kumiko'),
-  ('abcash','4morikawa5@gmail.com','kumiko'),
-  ('abcash','k.morikawa@merone.jp','kumiko')
-ON CONFLICT (board_id, email) DO NOTHING;
-
--- 各ボードの初期メタ（表示名）
+-- ボード別アクセス・クライアント名は Supabase に直接投入して管理（公開リポジトリには含めない）
+-- ★個人情報保護：ボード一覧・アクセス許可メール・クライアント名は
+--   個人情報／機密のため、この公開リポジトリには保存しません。
+--   実データ（nurture_access のメール、nurture_meta のクライアント名）は
+--   Supabase に直接投入して管理します（Management API 経由）。
+-- 下は動作確認用の汎用デフォルト行のみ。
 INSERT INTO nurture_meta (board_id, title, client_label) VALUES
-  ('client1','ナーチャリング共有ボード','クライアント'),
-  ('riet','リエット ナーチャリング進行ボード','リエット'),
-  ('famm','Famm ナーチャリング進行ボード','Famm'),
-  ('abcash','ABCash ナーチャリング進行ボード','ABCash')
+  ('client1','ナーチャリング共有ボード','クライアント')
 ON CONFLICT (board_id) DO NOTHING;
 
 -- 完了！ このあと Auth の URL 設定（setup.html の STEP参照）をして index.html を開く

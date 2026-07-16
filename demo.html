@@ -24,6 +24,15 @@ body{
 }
 .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 80px}
 
+/* ---------- 管理者・役員のボード横断タブ ---------- */
+.board-tabs{display:none;gap:6px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:14px;overflow-x:auto;box-shadow:0 6px 22px rgba(38,64,95,.10)}
+.board-tabs.on{display:flex}
+.board-tab{border:none;background:none;padding:10px 18px;border-radius:10px;font-family:inherit;font-weight:700;font-size:.86rem;color:var(--muted);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px;transition:.15s}
+.board-tab:hover{background:var(--blue-soft);color:var(--navy)}
+.board-tab.active{background:linear-gradient(120deg,var(--navy),var(--blue-mid));color:#fff}
+.board-tab .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.65}
+.board-tabs .tablabel{font-size:.66rem;color:var(--muted);font-weight:700;padding:0 8px;display:flex;align-items:center;white-space:nowrap}
+
 /* ---------- auth gate ---------- */
 .authgate{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#f4f9fd,#fbeef1);
   display:flex;align-items:center;justify-content:center;padding:20px}
@@ -352,6 +361,9 @@ details.rec .rec-body{padding:0 18px 18px}
 <div class="wrap">
   <div class="demo-banner"><span><b>デモ版プレビュー</b>｜サンプルデータです（自由に操作できます）。右上「切替」で 株式会社Merone／クライアント／役員 の見え方を試せます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
 
+  <!-- 管理者・役員：ボード横断タブ（複数ボードにアクセス権がある人のみ表示） -->
+  <div class="board-tabs" id="boardTabs"></div>
+
   <!-- ===== HEADER ===== -->
   <header>
     <div class="h-top">
@@ -581,9 +593,12 @@ details.rec .rec-body{padding:0 18px 18px}
 // ============================================================
 // 初期化
 // ============================================================
-const BID = SUPABASE_CONFIG.boardId || 'client1';
-const BOARD_NAMES = { riet:'リエット', famm:'Famm', abcash:'ABCash', client1:'デモ' };
-(function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent='「'+(BOARD_NAMES[BID]||BID)+'」専用ボード'; })();
+let BID = SUPABASE_CONFIG.boardId || 'client1';
+let currentUserEmail = '';
+let ADMIN_BOARD_NAMES = {};
+// ボード名（クライアント名）は公開ソースに載せない。ログイン後にDB(nurture_meta)から取得して表示。
+const BOARD_NAMES = {};
+(function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent=''; })();
 let sb = makeSB();
 let ROLE = localStorage.getItem('nurture_role'); // 'kumiko' | 'client'
 let META = { title:'ナーチャリング共有ボード', client_label:'クライアント' };
@@ -1250,8 +1265,27 @@ async function evalSession(session){
       ok=!!data;
     }catch(e){ ok=false; }
     if(!ok){
+      // このボードは権限がなくても、他にアクセスできるボードがあればそこへ回す（管理者・役員向け）
+      try{
+        const {data}=await sb.from('nurture_access').select('board_id').eq('email',email);
+        const others=(data||[]).map(r=>r.board_id).filter(b=>b!=='client1');
+        const order=['riet','famm','abcash','she']; others.sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+        if(others.length){ BID=others[0]; ok=true; }
+      }catch(e){}
+    }
+    if(!ok){
       await sb.auth.signOut(); showGate(); resetAuth();
       authMsg('このボードへのアクセス権限がありません。担当者にご確認ください。','err'); return false;
+    }
+    currentUserEmail=email;
+    // 役割が未設定なら、アクセス管理の role_hint から自動判定（kumiko/executive/client）
+    if(ROLE!=='kumiko' && ROLE!=='client' && ROLE!=='executive'){
+      try{
+        const {data}=await sb.from('nurture_access').select('role_hint').eq('board_id',BID).eq('email',email).maybeSingle();
+        if(data && (data.role_hint==='kumiko'||data.role_hint==='executive'||data.role_hint==='client')){
+          ROLE=data.role_hint; localStorage.setItem('nurture_role',ROLE);
+        }
+      }catch(e){}
     }
     document.getElementById('authUser').textContent=email+'　';
     hideGate();
@@ -1268,8 +1302,42 @@ async function logout(){
 function startBoard(){
   if(boardStarted) return; boardStarted=true;
   loadAll().then(()=>ensureRole());
+  loadAdminTabs();
   setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 5000);
   window.addEventListener('focus',()=>{ if(boardStarted) loadAll(); });
+}
+
+// 複数ボードにアクセス権がある人（株式会社Merone・役員）だけ、横断タブを表示
+async function loadAdminTabs(){
+  if(!sb || !currentUserEmail) return;
+  let rows=[];
+  try{ const {data}=await sb.from('nurture_access').select('board_id,role_hint').eq('email',currentUserEmail); rows=data||[]; }catch(e){}
+  const boards=rows.filter(r=>(r.role_hint==='kumiko'||r.role_hint==='executive') && r.board_id!=='client1').map(r=>r.board_id);
+  const order=['riet','famm','abcash','she'];
+  boards.sort((a,b)=>{ const ia=order.indexOf(a),ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+  const bar=document.getElementById('boardTabs');
+  if(!bar) return;
+  if(boards.length < 2){ bar.classList.remove('on'); bar.innerHTML=''; return; }
+  // ボード名を取得
+  try{ const {data}=await sb.from('nurture_meta').select('board_id,client_label').in('board_id',boards);
+    (data||[]).forEach(m=>ADMIN_BOARD_NAMES[m.board_id]=m.client_label); }catch(e){}
+  bar.innerHTML='<span class="tablabel">管理ボード</span>'+boards.map(b=>
+    '<button class="board-tab" data-b="'+b+'" onclick="switchBoard(\''+b+'\')"><span class="dot"></span>'+
+    esc(ADMIN_BOARD_NAMES[b]||BOARD_NAMES[b]||b)+'</button>').join('');
+  bar.classList.add('on');
+  // 現在ボードがタブ内でなければ最初のボードへ、そうでなければハイライト
+  if(!boards.includes(BID)) switchBoard(boards[0]);
+  else highlightTab(BID);
+}
+function highlightTab(b){
+  document.querySelectorAll('.board-tab').forEach(t=>t.classList.toggle('active', t.getAttribute('data-b')===b));
+}
+function switchBoard(b){
+  if(BID===b){ highlightTab(b); return; }
+  BID=b; highlightTab(b);
+  // 開いているフォーム・入力をリセットして読み直し
+  document.querySelectorAll('.overlay.on').forEach(o=>o.classList.remove('on'));
+  loadAll();
 }
 
 // ============================================================
@@ -1277,51 +1345,32 @@ function startBoard(){
 // ============================================================
 
 function resetDemo(){ localStorage.removeItem('nurture_demo'); location.reload(); }
-function makeSB(){
-  const SEED={
-    nurture_meta:[{board_id:'client1',title:'○○株式会社 ナーチャリング進行ボード',client_label:'○○株式会社'}],
-    nurture_directives:[
-      {id:'d1',board_id:'client1',title:'初回面談からの成約率を今期中に引き上げる',body:'（例）お互いで話し合って決めた目標です。',metric_label:'成約率',target_value:'20',current_value:'16',unit:'%',goal_dir:'up',status:'active',author:'kumiko',sort_order:1},
-      {id:'d2',board_id:'client1',title:'キャンセル率を下げる',body:'',metric_label:'キャンセル率',target_value:'10',current_value:'14',unit:'%',goal_dir:'down',status:'active',author:'kumiko',sort_order:2}],
-    nurture_exec_notes:[
-      {id:'n1',board_id:'client1',body:'面談後フォローの精度を最優先でお願いします。今週中に翌日連絡を仕組み化してほしいです。',author:'executive',kind:'request',created_at:'2026-07-15T01:00:00Z'},
-      {id:'n2',board_id:'client1',body:'進捗の共有ありがとうございます。この調子でお願いします。',author:'executive',kind:'note',created_at:'2026-07-14T02:00:00Z'}],
-    nurture_tasks:[
-      {id:'t1',board_id:'client1',title:'LT1の配信文を金曜までに送付',owner:'kumiko',status:'todo',memo:'',sort_order:1},
-      {id:'t2',board_id:'client1',title:'リッチメニュー画像を用意',owner:'client',status:'done',memo:'',sort_order:2},
-      {id:'t3',board_id:'client1',title:'翌日フォローのテンプレを整備',owner:'kumiko',status:'doing',memo:'役員依頼：フォロー漏れ対策',sort_order:3}],
-    nurture_stuck:[
-      {board_id:'client1',owner:'kumiko',content:'LT1配信文を作成中。金曜午前に共有予定（進捗7割）'},
-      {board_id:'client1',owner:'client',content:'リッチメニュー画像を確認中。明日までにお戻しします'}],
-    nurture_topics:[
-      {id:'p1',board_id:'client1',content:'初回配信は夜21時固定と決定',author:'kumiko',created_at:'2026-07-14T12:00:00Z'},
-      {id:'p2',board_id:'client1',content:'面談リマインドは2通に削減する方針で合意',author:'client',created_at:'2026-07-13T09:00:00Z'}],
-    nurture_deliverables:[
-      {id:'v1',board_id:'client1',title:'7月勉強会 募集バナー 3種',category:'バナー',url:'https://example.com',summary:'税金フック版／メルカリ版／QA版',delivered_on:'2026-07-11'},
-      {id:'v2',board_id:'client1',title:'6月ファネル分析レポート',category:'レポート',url:'https://example.com',summary:'キャンセル率の要因分解と改善提案',delivered_on:'2026-07-02'}]
-  };
+function makeSB(){ const SEED={
+  nurture_meta:[{board_id:'client1',title:'○○株式会社 ナーチャリング進行ボード',client_label:'○○株式会社'}],
+  nurture_directives:[{id:'d1',board_id:'client1',title:'初回面談からの成約率を今期中に引き上げる',body:'（例）お互いで話し合って決めた目標です。',metric_label:'成約率',target_value:'20',current_value:'16',unit:'%',goal_dir:'up',status:'active',author:'kumiko',sort_order:1},{id:'d2',board_id:'client1',title:'キャンセル率を下げる',body:'',metric_label:'キャンセル率',target_value:'10',current_value:'14',unit:'%',goal_dir:'down',status:'active',author:'kumiko',sort_order:2}],
+  nurture_exec_notes:[{id:'n1',board_id:'client1',body:'面談後フォローの精度を最優先でお願いします。今週中に翌日連絡を仕組み化してほしいです。',author:'executive',kind:'request',created_at:'2026-07-15T01:00:00Z'},{id:'n2',board_id:'client1',body:'進捗の共有ありがとうございます。この調子でお願いします。',author:'executive',kind:'note',created_at:'2026-07-14T02:00:00Z'}],
+  nurture_tasks:[{id:'t1',board_id:'client1',title:'LT1の配信文を金曜までに送付',owner:'kumiko',status:'todo',memo:'',sort_order:1},{id:'t2',board_id:'client1',title:'リッチメニュー画像を用意',owner:'client',status:'done',memo:'',sort_order:2},{id:'t3',board_id:'client1',title:'翌日フォローのテンプレを整備',owner:'kumiko',status:'doing',memo:'役員依頼：フォロー漏れ対策',sort_order:3}],
+  nurture_stuck:[{board_id:'client1',owner:'kumiko',content:'LT1配信文を作成中。金曜午前に共有予定（進捗7割）'},{board_id:'client1',owner:'client',content:'リッチメニュー画像を確認中。明日までにお戻しします'}],
+  nurture_topics:[{id:'p1',board_id:'client1',content:'初回配信は夜21時固定と決定',author:'kumiko',created_at:'2026-07-14T12:00:00Z'}],
+  nurture_deliverables:[{id:'v1',board_id:'client1',title:'7月勉強会 募集バナー 3種',category:'バナー',url:'https://example.com',summary:'税金フック版／メルカリ版／QA版',delivered_on:'2026-07-11'}]
+};
   let DB; try{ DB=JSON.parse(localStorage.getItem('nurture_demo')); }catch(e){}
   if(!DB || !DB.nurture_exec_notes || !DB.nurture_exec_notes[0] || !DB.nurture_exec_notes[0].kind){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem('nurture_demo',JSON.stringify(DB)); }
   let idc=1; const persist=()=>localStorage.setItem('nurture_demo',JSON.stringify(DB));
-  class Q{
-    constructor(t){this.t=t;this._op='select';this._f=[];this._row=null;this._single=false;this._maybe=false;this._orders=[];this._head=false;this._conflict=null;}
-    select(c,o){ if(o&&o.head)this._head=true; return this; } eq(c,v){ this._f.push([c,v]); return this; }
-    order(c,o){ this._orders.push([c,!(o&&o.ascending===false)]); return this; } single(){ this._single=true; return this; } maybeSingle(){ this._maybe=true; return this; }
-    insert(r){ this._op='insert'; this._row=r; return this; } update(p){ this._op='update'; this._row=p; return this; }
-    upsert(r,o){ this._op='upsert'; this._row=r; this._conflict=o&&o.onConflict; return this; } delete(){ this._op='delete'; return this; }
-    _match(r){ return this._f.every(([c,v])=>r[c]===v); }
-    _run(){ const arr = DB[this.t] || (DB[this.t]=[]);
-      if(this._op==='select'){ let rows=arr.filter(r=>this._match(r));
-        [...this._orders].reverse().forEach(([c,asc])=>rows.sort((a,b)=>{const x=a[c]==null?'':a[c],y=b[c]==null?'':b[c]; if(x===y)return 0; return (x>y?1:-1)*(asc?1:-1);}));
-        if(this._head) return {data:null,count:rows.length,error:null}; if(this._maybe) return {data:rows[0]||null,error:null};
-        if(this._single) return {data:rows[0]||null,error:rows[0]?null:{message:'no rows'}}; return {data:rows,error:null}; }
-      if(this._op==='insert'){ const row=Object.assign({},this._row); if(!row.id)row.id='demo_'+(idc++)+'_'+Date.now(); arr.push(row); persist(); return {data:row,error:null}; }
-      if(this._op==='update'){ let u=null; arr.forEach((r,i)=>{ if(this._match(r)){ arr[i]=Object.assign({},r,this._row); u=arr[i]; } }); persist(); return {data:u,error:u?null:{message:'nf'}}; }
-      if(this._op==='upsert'){ const row=Object.assign({},this._row); const keys=this._conflict?this._conflict.split(','):['board_id']; const i=arr.findIndex(r=>keys.every(k=>r[k]===row[k])); if(i>=0)arr[i]=Object.assign({},arr[i],row); else arr.push(row); persist(); return {data:row,error:null}; }
-      if(this._op==='delete'){ DB[this.t]=arr.filter(r=>!this._match(r)); persist(); return {data:null,error:null}; } }
-    then(res,rej){ return Promise.resolve(this._run()).then(res,rej); }
-  }
-  return { from:t=>new Q(t), auth:{ getSession:async()=>({data:{session:{user:{email:'demo'}}}}), onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}), signOut:async()=>{} } };
+  class Q{ constructor(t){this.t=t;this._op='select';this._f=[];this._in=null;this._orders=[];this._head=false;this._single=false;this._maybe=false;this._conflict=null;}
+    select(c,o){if(o&&o.head)this._head=true;return this;} eq(c,v){this._f.push([c,v]);return this;} in(c,a){this._in=[c,a];return this;}
+    order(c,o){this._orders.push([c,!(o&&o.ascending===false)]);return this;} single(){this._single=true;return this;} maybeSingle(){this._maybe=true;return this;}
+    insert(r){this._op='insert';this._row=r;return this;} update(p){this._op='update';this._row=p;return this;} upsert(r,o){this._op='upsert';this._row=r;this._conflict=o&&o.onConflict;return this;} delete(){this._op='delete';return this;}
+    _m(r){return this._f.every(([c,v])=>r[c]===v)&&(!this._in||this._in[1].includes(r[this._in[0]]));}
+    _run(){const arr=DB[this.t]||(DB[this.t]=[]);
+      if(this._op==='select'){let rows=arr.filter(r=>this._m(r));[...this._orders].reverse().forEach(([c,asc])=>rows.sort((a,b)=>{const x=a[c]==null?'':a[c],y=b[c]==null?'':b[c];return x===y?0:(x>y?1:-1)*(asc?1:-1);}));
+        if(this._head)return{data:null,count:rows.length,error:null}; if(this._maybe)return{data:rows[0]||null,error:null}; if(this._single)return{data:rows[0]||null,error:rows[0]?null:{message:'no'}}; return{data:rows,error:null};}
+      if(this._op==='insert'){const row=Object.assign({},this._row); if(!row.id)row.id='demo_'+(idc++)+'_'+Date.now(); arr.push(row); persist(); return{data:row,error:null};}
+      if(this._op==='update'){let u=null; arr.forEach((r,i)=>{if(this._m(r)){arr[i]=Object.assign({},r,this._row);u=arr[i];}}); persist(); return{data:u,error:u?null:{message:'nf'}};}
+      if(this._op==='upsert'){const row=Object.assign({},this._row); const keys=this._conflict?this._conflict.split(','):['board_id']; const i=arr.findIndex(r=>keys.every(k=>r[k]===row[k])); if(i>=0)arr[i]=Object.assign({},arr[i],row); else arr.push(row); persist(); return{data:row,error:null};}
+      if(this._op==='delete'){DB[this.t]=arr.filter(r=>!this._m(r)); persist(); return{data:null,error:null};} }
+    then(res){return Promise.resolve(this._run()).then(res);} }
+  return { from:t=>new Q(t), auth:{getSession:async()=>({data:{session:{user:{email:'demo'}}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>{}} };
 }
 function switchRole(){ const seq=['kumiko','client','executive']; ROLE=seq[(seq.indexOf(ROLE)+1)%3]; localStorage.setItem('nurture_demo_role',ROLE); paintRole(); }
 (function demoInit(){ document.getElementById('authGate').classList.add('hide'); ROLE = localStorage.getItem('nurture_demo_role') || 'kumiko'; loadAll().then(()=>paintRole()); setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 4000); })();

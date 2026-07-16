@@ -592,8 +592,9 @@ details.rec .rec-body{padding:0 18px 18px}
 let BID = SUPABASE_CONFIG.boardId || 'client1';
 let currentUserEmail = '';
 let ADMIN_BOARD_NAMES = {};
-const BOARD_NAMES = { riet:'リエット', famm:'Famm', abcash:'ABCash', client1:'デモ' };
-(function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent='「'+(BOARD_NAMES[BID]||BID)+'」専用ボード'; })();
+// ボード名（クライアント名）は公開ソースに載せない。ログイン後にDB(nurture_meta)から取得して表示。
+const BOARD_NAMES = {};
+(function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent=''; })();
 let sb = null;
 if (SUPABASE_CONFIG.enabled && window.supabase) {
   sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
@@ -1267,7 +1268,7 @@ async function evalSession(session){
       try{
         const {data}=await sb.from('nurture_access').select('board_id').eq('email',email);
         const others=(data||[]).map(r=>r.board_id).filter(b=>b!=='client1');
-        const order=['riet','famm','abcash']; others.sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+        const order=['riet','famm','abcash','she']; others.sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
         if(others.length){ BID=others[0]; ok=true; }
       }catch(e){}
     }
@@ -1311,7 +1312,7 @@ async function loadAdminTabs(){
   let rows=[];
   try{ const {data}=await sb.from('nurture_access').select('board_id,role_hint').eq('email',currentUserEmail); rows=data||[]; }catch(e){}
   const boards=rows.filter(r=>(r.role_hint==='kumiko'||r.role_hint==='executive') && r.board_id!=='client1').map(r=>r.board_id);
-  const order=['riet','famm','abcash'];
+  const order=['riet','famm','abcash','she'];
   boards.sort((a,b)=>{ const ia=order.indexOf(a),ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
   const bar=document.getElementById('boardTabs');
   if(!bar) return;
