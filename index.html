@@ -24,6 +24,15 @@ body{
 }
 .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 80px}
 
+/* ---------- 管理者・役員のボード横断タブ ---------- */
+.board-tabs{display:none;gap:6px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:14px;overflow-x:auto;box-shadow:0 6px 22px rgba(38,64,95,.10)}
+.board-tabs.on{display:flex}
+.board-tab{border:none;background:none;padding:10px 18px;border-radius:10px;font-family:inherit;font-weight:700;font-size:.86rem;color:var(--muted);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px;transition:.15s}
+.board-tab:hover{background:var(--blue-soft);color:var(--navy)}
+.board-tab.active{background:linear-gradient(120deg,var(--navy),var(--blue-mid));color:#fff}
+.board-tab .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.65}
+.board-tabs .tablabel{font-size:.66rem;color:var(--muted);font-weight:700;padding:0 8px;display:flex;align-items:center;white-space:nowrap}
+
 /* ---------- auth gate ---------- */
 .authgate{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#f4f9fd,#fbeef1);
   display:flex;align-items:center;justify-content:center;padding:20px}
@@ -348,6 +357,9 @@ details.rec .rec-body{padding:0 18px 18px}
 
 <div class="wrap">
 
+  <!-- 管理者・役員：ボード横断タブ（複数ボードにアクセス権がある人のみ表示） -->
+  <div class="board-tabs" id="boardTabs"></div>
+
   <!-- ===== HEADER ===== -->
   <header>
     <div class="h-top">
@@ -577,7 +589,9 @@ details.rec .rec-body{padding:0 18px 18px}
 // ============================================================
 // 初期化
 // ============================================================
-const BID = SUPABASE_CONFIG.boardId || 'client1';
+let BID = SUPABASE_CONFIG.boardId || 'client1';
+let currentUserEmail = '';
+let ADMIN_BOARD_NAMES = {};
 const BOARD_NAMES = { riet:'リエット', famm:'Famm', abcash:'ABCash', client1:'デモ' };
 (function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent='「'+(BOARD_NAMES[BID]||BID)+'」専用ボード'; })();
 let sb = null;
@@ -1249,9 +1263,19 @@ async function evalSession(session){
       ok=!!data;
     }catch(e){ ok=false; }
     if(!ok){
+      // このボードは権限がなくても、他にアクセスできるボードがあればそこへ回す（管理者・役員向け）
+      try{
+        const {data}=await sb.from('nurture_access').select('board_id').eq('email',email);
+        const others=(data||[]).map(r=>r.board_id).filter(b=>b!=='client1');
+        const order=['riet','famm','abcash']; others.sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+        if(others.length){ BID=others[0]; ok=true; }
+      }catch(e){}
+    }
+    if(!ok){
       await sb.auth.signOut(); showGate(); resetAuth();
       authMsg('このボードへのアクセス権限がありません。担当者にご確認ください。','err'); return false;
     }
+    currentUserEmail=email;
     document.getElementById('authUser').textContent=email+'　';
     hideGate();
     startBoard();
@@ -1267,8 +1291,42 @@ async function logout(){
 function startBoard(){
   if(boardStarted) return; boardStarted=true;
   loadAll().then(()=>ensureRole());
+  loadAdminTabs();
   setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 5000);
   window.addEventListener('focus',()=>{ if(boardStarted) loadAll(); });
+}
+
+// 複数ボードにアクセス権がある人（株式会社Merone・役員）だけ、横断タブを表示
+async function loadAdminTabs(){
+  if(!sb || !currentUserEmail) return;
+  let rows=[];
+  try{ const {data}=await sb.from('nurture_access').select('board_id,role_hint').eq('email',currentUserEmail); rows=data||[]; }catch(e){}
+  const boards=rows.filter(r=>(r.role_hint==='kumiko'||r.role_hint==='executive') && r.board_id!=='client1').map(r=>r.board_id);
+  const order=['riet','famm','abcash'];
+  boards.sort((a,b)=>{ const ia=order.indexOf(a),ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+  const bar=document.getElementById('boardTabs');
+  if(!bar) return;
+  if(boards.length < 2){ bar.classList.remove('on'); bar.innerHTML=''; return; }
+  // ボード名を取得
+  try{ const {data}=await sb.from('nurture_meta').select('board_id,client_label').in('board_id',boards);
+    (data||[]).forEach(m=>ADMIN_BOARD_NAMES[m.board_id]=m.client_label); }catch(e){}
+  bar.innerHTML='<span class="tablabel">管理ボード</span>'+boards.map(b=>
+    '<button class="board-tab" data-b="'+b+'" onclick="switchBoard(\''+b+'\')"><span class="dot"></span>'+
+    esc(ADMIN_BOARD_NAMES[b]||BOARD_NAMES[b]||b)+'</button>').join('');
+  bar.classList.add('on');
+  // 現在ボードがタブ内でなければ最初のボードへ、そうでなければハイライト
+  if(!boards.includes(BID)) switchBoard(boards[0]);
+  else highlightTab(BID);
+}
+function highlightTab(b){
+  document.querySelectorAll('.board-tab').forEach(t=>t.classList.toggle('active', t.getAttribute('data-b')===b));
+}
+function switchBoard(b){
+  if(BID===b){ highlightTab(b); return; }
+  BID=b; highlightTab(b);
+  // 開いているフォーム・入力をリセットして読み直し
+  document.querySelectorAll('.overlay.on').forEach(o=>o.classList.remove('on'));
+  loadAll();
 }
 
 // ============================================================
