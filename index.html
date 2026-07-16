@@ -1276,6 +1276,15 @@ async function evalSession(session){
       authMsg('このボードへのアクセス権限がありません。担当者にご確認ください。','err'); return false;
     }
     currentUserEmail=email;
+    // 役割が未設定なら、アクセス管理の role_hint から自動判定（kumiko/executive/client）
+    if(ROLE!=='kumiko' && ROLE!=='client' && ROLE!=='executive'){
+      try{
+        const {data}=await sb.from('nurture_access').select('role_hint').eq('board_id',BID).eq('email',email).maybeSingle();
+        if(data && (data.role_hint==='kumiko'||data.role_hint==='executive'||data.role_hint==='client')){
+          ROLE=data.role_hint; localStorage.setItem('nurture_role',ROLE);
+        }
+      }catch(e){}
+    }
     document.getElementById('authUser').textContent=email+'　';
     hideGate();
     startBoard();
