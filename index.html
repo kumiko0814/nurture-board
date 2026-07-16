@@ -106,10 +106,14 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 .task.done .check{background:var(--ok);border-color:var(--ok)}
 .task.doing .check{background:#ffc94d;border-color:#f0ab00}
 .t-body{flex:1;min-width:0}
-.t-title{font-size:.9rem;word-break:break-word;cursor:text}
-.t-memo{font-size:.75rem;color:var(--pink-deep);margin-top:4px;background:var(--pink-soft);
-  padding:5px 9px;border-radius:8px;display:inline-block;max-width:100%;word-break:break-word}
-.t-memo.empty{color:var(--muted);background:transparent;padding:0;cursor:pointer;font-size:.72rem}
+.t-title{font-size:.9rem;word-break:break-word;cursor:text;outline:none;border-radius:6px;padding:2px 4px;margin:-2px -4px}
+.t-title:focus{background:#fff;box-shadow:0 0 0 2px var(--blue)}
+.t-memo{font-size:.75rem;color:var(--pink-deep);margin-top:5px;padding:5px 9px;border-radius:8px;
+  max-width:100%;word-break:break-word;outline:none;cursor:text;min-height:1.3em}
+.t-memo:not(:empty){background:var(--pink-soft)}
+.t-memo:empty:before{content:attr(data-ph);color:var(--muted);font-size:.72rem}
+.t-memo:focus{box-shadow:0 0 0 2px var(--pink)}
+.t-memo:focus:empty:before{content:''}
 .t-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
 .t-actions button{font-size:.68rem;border:1px solid var(--line);background:#fff;color:var(--muted);
   border-radius:16px;padding:3px 9px;cursor:pointer}
@@ -734,22 +738,37 @@ function renderTasks(){
 function taskEl(t){
   const li=document.createElement('li');
   li.className='task '+(t.status==='done'?'done':t.status==='doing'?'doing':'');
-  const memoHtml = t.memo
-    ? '<div class="t-memo" onclick="editMemo(\''+t.id+'\')">'+esc(t.memo)+'</div>'
-    : '<div class="t-memo empty" onclick="editMemo(\''+t.id+'\')">＋補足・メモを追加</div>';
   li.innerHTML =
-    '<div class="check" title="完了" onclick="toggleDone(\''+t.id+'\')">'+(t.status==='done'?'✓':t.status==='doing'?'⏳':'')+'</div>'+
+    '<div class="check" title="完了" onclick="toggleDone(\''+t.id+'\')">'+(t.status==='done'?'✓':t.status==='doing'?'…':'')+'</div>'+
     '<div class="t-body">'+
-      '<div class="t-title" onclick="editTitleTask(\''+t.id+'\')">'+esc(t.title)+'</div>'+
-      memoHtml+
+      '<div class="t-title" contenteditable="true" spellcheck="false" '+
+        'onblur="saveTitleInline(\''+t.id+'\',this)" onkeydown="taskEditKey(event)">'+esc(t.title)+'</div>'+
+      '<div class="t-memo" contenteditable="true" spellcheck="false" data-ph="＋補足・メモ" '+
+        'onblur="saveMemoInline(\''+t.id+'\',this)" onkeydown="taskEditKey(event)">'+esc(t.memo||'')+'</div>'+
       '<div class="t-actions">'+
-        '<button onclick="toggleDoing(\''+t.id+'\')">'+(t.status==='doing'?'着手中を解除':'⏳着手中')+'</button>'+
-        '<button onclick="moveOwner(\''+t.id+'\')">↔担当変更</button>'+
-        '<button class="del" onclick="delTask(\''+t.id+'\')">🗑</button>'+
+        '<button onclick="toggleDoing(\''+t.id+'\')">'+(t.status==='doing'?'着手中を解除':'着手中にする')+'</button>'+
+        '<button onclick="moveOwner(\''+t.id+'\')">担当変更</button>'+
+        '<button class="del" onclick="delTask(\''+t.id+'\')">削除</button>'+
       '</div>'+
     '</div>';
   return li;
 }
+// タイトル/メモをその場で保存（別窓なし）
+function taskEditKey(e){ if(e.key==='Enter' && !e.isComposing){ e.preventDefault(); e.target.blur(); } }
+function saveTitleInline(id,el){
+  const v=(el.textContent||'').trim();
+  const t=TASKS.find(x=>x.id===id); if(!t) return;
+  if(!v){ el.textContent=t.title; return; }
+  if(v===t.title) return;
+  patchTask(id,{title:v});
+}
+function saveMemoInline(id,el){
+  const v=(el.textContent||'').trim();
+  const t=TASKS.find(x=>x.id===id); if(!t) return;
+  if(v===(t.memo||'')) return;
+  patchTask(id,{memo:v});
+}
+function isEditing(){ const a=document.activeElement; return !!(a && a.getAttribute && a.getAttribute('contenteditable')==='true'); }
 
 // ============================================================
 // タスク操作
@@ -1302,8 +1321,8 @@ function startBoard(){
   if(boardStarted) return; boardStarted=true;
   loadAll().then(()=>ensureRole());
   loadAdminTabs();
-  setInterval(()=>{ if(!document.querySelector('.overlay.on')) loadAll(); }, 5000);
-  window.addEventListener('focus',()=>{ if(boardStarted) loadAll(); });
+  setInterval(()=>{ if(!document.querySelector('.overlay.on') && !isEditing()) loadAll(); }, 5000);
+  window.addEventListener('focus',()=>{ if(boardStarted && !isEditing()) loadAll(); });
 }
 
 // 複数ボードにアクセス権がある人（株式会社Merone・役員）だけ、横断タブを表示
