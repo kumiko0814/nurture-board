@@ -347,7 +347,7 @@ details.rec .rec-body{padding:0 18px 18px}
   <div class="authcard">
     <h2>ナーチャリング共有ボード</h2>
     <div id="gateBoard" style="font-weight:800;color:#26405f;font-size:.92rem;margin-bottom:10px"></div>
-    <p class="authlead">許可されたメールアドレスの方のみご利用いただけます。<br>ご登録のメールアドレスをご入力ください。</p>
+    <p class="authlead">許可されたメールアドレスの方のみご利用いただけます。<br>ご登録のメールアドレスをご入力ください。<br><span class="hint">一度ログインすると、この端末では次回から自動でログインされます。</span></p>
     <div id="authStep1">
       <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"
         onkeydown="if(event.key==='Enter')sendMagic()">
@@ -363,7 +363,7 @@ details.rec .rec-body{padding:0 18px 18px}
 </div>
 
 <div class="wrap">
-  <div class="demo-banner"><span><b>ABCash用モックアップ</b>｜これはサンプルデータの見本です（初回コンサルでの説明用）。タイトル/メモはその場でクリック編集できます。右上「切替」で 株式会社Merone／ABCash／役員 の見え方を試せます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
+  <div class="demo-banner"><span><b>ABCash用モックアップ</b>｜これはサンプルデータの見本です（初回コンサルでの説明用）。右上「切替」で 株式会社Merone／ABCash の見え方を試せます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
 
   <!-- 管理者・役員：ボード横断タブ（複数ボードにアクセス権がある人のみ表示） -->
   <div class="board-tabs" id="boardTabs"></div>
@@ -500,12 +500,12 @@ details.rec .rec-body{padding:0 18px 18px}
 
   <!-- ===== 6. 役員から（最下部） ===== -->
   <div class="exec-section">
-    <div class="exec-head"><h2><span class="exec-badge">経営</span>役員から</h2></div>
-    <div class="exec-desc">役員（代表）からのメッセージです。担当者は必ずここを確認してください。</div>
+    <div class="exec-head"><h2><span class="exec-badge">経営</span>経営から</h2></div>
+    <div class="exec-desc">株式会社Merone（経営・役員）からのメッセージです。担当者は必ずここを確認してください。</div>
 
     <!-- 指摘・依頼事項（特に重要・強調） -->
     <div class="exec-req-block">
-      <div class="exec-block-head req"><span>役員からの指摘・依頼事項</span><span class="req-badge">要対応</span></div>
+      <div class="exec-block-head req"><span>経営からの指摘・依頼事項</span><span class="req-badge">要対応</span></div>
       <div class="exec-note-form" id="execReqForm" style="display:none">
         <textarea id="execReqBody" placeholder="例）面談後フォローの精度を最優先に。今週中に翌日連絡を仕組み化してほしい。"></textarea>
         <div class="row2"><button class="btn req-btn" onclick="addExecNote('request')">投稿</button></div>
@@ -516,7 +516,7 @@ details.rec .rec-body{padding:0 18px 18px}
 
     <!-- 一言 -->
     <div class="exec-block">
-      <div class="exec-block-head"><span>役員からの一言</span></div>
+      <div class="exec-block-head"><span>経営からの一言</span></div>
       <div class="exec-note-form" id="execNoteForm" style="display:none">
         <textarea id="execNoteBody" placeholder="例）進捗ありがとうございます。この調子でお願いします。"></textarea>
         <div class="row2"><button class="btn" onclick="addExecNote('note')">投稿</button></div>
@@ -554,11 +554,10 @@ details.rec .rec-body{padding:0 18px 18px}
       <div class="fhint">未入力の場合は「ナーチャリング共有ボード」になります</div>
     </div>
     <div class="setfield">
-      <label>ご利用者の種別</label>
+      <label>ご利用者はどちらですか</label>
       <div class="rolepick">
-        <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> 株式会社Merone</label>
+        <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> 株式会社Merone（弊社・役員含む）</label>
         <label class="rolebtn"><input type="radio" name="setRole" value="client"> <span id="roleClientLabel">クライアント</span></label>
-        <label class="rolebtn"><input type="radio" name="setRole" value="executive"> 役員</label>
       </div>
     </div>
     <div class="modal-actions">
@@ -602,7 +601,8 @@ let currentUserEmail = '';
 let ADMIN_BOARD_NAMES = {};
 // ボード名（クライアント名）は公開ソースに載せない。ログイン後にDB(nurture_meta)から取得して表示。
 const BOARD_NAMES = {};
-(function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent=''; })();
+(function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent='';
+  try{ const em=document.getElementById('authEmail'), last=localStorage.getItem('nurture_last_email'); if(em&&last){ em.value=last; } }catch(e){} })();
 let sb = makeSB();
 let ROLE = localStorage.getItem('nurture_role'); // 'kumiko' | 'client'
 let META = { title:'ナーチャリング共有ボード', client_label:'クライアント' };
@@ -628,7 +628,7 @@ function switchRole(){
   paintRole();
 }
 function paintRole(){
-  const name = ROLE==='kumiko' ? '株式会社Merone' : ROLE==='executive' ? '役員' : META.client_label;
+  const name = (ROLE==='kumiko'||ROLE==='executive') ? '株式会社Merone' : META.client_label;
   document.getElementById('whoName').textContent = name;
   document.getElementById('mineK').style.display = ROLE==='kumiko' ? '' : 'none';
   document.getElementById('mineC').style.display = ROLE==='client' ? '' : 'none';
@@ -867,7 +867,7 @@ async function patchRow(table,arr,id,patch,rerender){
   const i=arr.findIndex(x=>x.id===id); if(i>=0)arr[i]=data; if(rerender)rerender();
 }
 function fmtDate(s){ if(!s)return''; const p=String(s).slice(0,10).split('-'); return p.length===3?(+p[1])+'/'+(+p[2]):esc(s); }
-function ownerLabel(o){ return o==='kumiko'?'株式会社Merone':o==='client'?(META.client_label||'クライアント'):o==='executive'?'役員':esc(o); }
+function ownerLabel(o){ return (o==='kumiko'||o==='executive')?'株式会社Merone':o==='client'?(META.client_label||'クライアント'):esc(o); }
 
 // ============================================================
 // 経営：期待・注視指標（役員／くみこが編集、担当者は閲覧）
@@ -974,7 +974,7 @@ function renderExecNotes(){
     arr.forEach(n=>{
       const li=document.createElement('li');
       const d=new Date(n.created_at);
-      const who=n.author==='executive'?'役員':n.author==='kumiko'?'株式会社Merone':ownerLabel(n.author);
+      const who=(n.author==='executive'||n.author==='kumiko')?'株式会社Merone':ownerLabel(n.author);
       li.innerHTML='<div class="n-body">'+esc(n.body)+'</div>'+
         '<div class="n-meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+'</span>'+
         (canEdit?'<span class="n-del" onclick="delExecNote(\''+n.id+'\')">削除</span>':'')+'</div>';
@@ -1270,6 +1270,7 @@ async function sendMagic(){
   const {error}=await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
   btn.disabled=false; btn.textContent='ログイン用リンクを送信';
   if(error){ authMsg('送信エラー：'+error.message,'err'); return; }
+  try{ localStorage.setItem('nurture_last_email', email); }catch(e){}
   document.getElementById('sentTo').textContent=email;
   document.getElementById('authStep1').style.display='none';
   document.getElementById('authStep2').style.display='';
@@ -1366,26 +1367,12 @@ function switchBoard(b){
 function resetDemo(){ localStorage.removeItem('nurture_demo_abcash'); location.reload(); }
 function makeSB(){ const SEED={
   nurture_meta:[{board_id:'abcash',title:'ABCash ナーチャリング進行ボード',client_label:'ABCash'}],
-  nurture_directives:[
-    {id:'d1',board_id:'abcash',title:'勉強会からの入会率を引き上げる',body:'（例）お互いで話し合って決めた目標です。',metric_label:'入会率',target_value:'25',current_value:'18',unit:'%',goal_dir:'up',status:'active',author:'kumiko',sort_order:1},
-    {id:'d2',board_id:'abcash',title:'初回面談のキャンセル率を下げる',body:'',metric_label:'面談キャンセル率',target_value:'8',current_value:'12',unit:'%',goal_dir:'down',status:'active',author:'kumiko',sort_order:2}],
-  nurture_exec_notes:[
-    {id:'n1',board_id:'abcash',body:'初回面談の質を最優先で上げたいです。トークスクリプトの見直しを今週中にお願いします。',author:'executive',kind:'request',created_at:'2026-07-15T01:00:00Z'},
-    {id:'n2',board_id:'abcash',body:'初回コンサル、よろしくお願いします。数字は都度共有いただけると助かります。',author:'executive',kind:'note',created_at:'2026-07-14T02:00:00Z'}],
-  nurture_tasks:[
-    {id:'t1',board_id:'abcash',title:'募集LPの改善案を金曜までに提出',owner:'kumiko',status:'todo',memo:'',sort_order:1},
-    {id:'t2',board_id:'abcash',title:'募集配信文を3本作成',owner:'kumiko',status:'doing',memo:'税金フック／資産形成／QA構成',sort_order:2},
-    {id:'t3',board_id:'abcash',title:'次回勉強会の日程を確定',owner:'client',status:'todo',memo:'',sort_order:3},
-    {id:'t4',board_id:'abcash',title:'登壇者のアサイン',owner:'client',status:'done',memo:'',sort_order:4}],
-  nurture_stuck:[
-    {board_id:'abcash',owner:'kumiko',content:'配信文のトーンをABCashブランドに合わせて調整中（本日中に共有予定）'},
-    {board_id:'abcash',owner:'client',content:'勉強会の会場候補を2つに絞って検討中'}],
-  nurture_topics:[
-    {id:'p1',board_id:'abcash',content:'初回配信は平日夜21時で合意',author:'kumiko',created_at:'2026-07-14T12:00:00Z'},
-    {id:'p2',board_id:'abcash',content:'勉強会は月2回ペースで実施する方針',author:'client',created_at:'2026-07-13T09:00:00Z'}],
-  nurture_deliverables:[
-    {id:'v1',board_id:'abcash',title:'ABCash向け 募集LP 初稿',category:'LP',url:'https://example.com',summary:'ファーストビュー3案＋価格訴求',delivered_on:'2026-07-12'},
-    {id:'v2',board_id:'abcash',title:'6月ファネル分析レポート',category:'レポート',url:'https://example.com',summary:'面談化率・入会率の要因分解',delivered_on:'2026-07-03'}]
+  nurture_directives:[{id:'d1',board_id:'abcash',title:'勉強会からの入会率を引き上げる',metric_label:'入会率',target_value:'25',current_value:'18',unit:'%',goal_dir:'up',status:'active',author:'kumiko',sort_order:1},{id:'d2',board_id:'abcash',title:'初回面談のキャンセル率を下げる',metric_label:'面談キャンセル率',target_value:'8',current_value:'12',unit:'%',goal_dir:'down',status:'active',author:'kumiko',sort_order:2}],
+  nurture_exec_notes:[{id:'n1',board_id:'abcash',body:'初回面談の質を最優先で上げたいです。トークスクリプトの見直しを今週中にお願いします。',author:'kumiko',kind:'request',created_at:'2026-07-15T01:00:00Z'},{id:'n2',board_id:'abcash',body:'初回コンサル、よろしくお願いします。数字は都度共有いただけると助かります。',author:'kumiko',kind:'note',created_at:'2026-07-14T02:00:00Z'}],
+  nurture_tasks:[{id:'t1',board_id:'abcash',title:'募集LPの改善案を金曜までに提出',owner:'kumiko',status:'todo',memo:'',sort_order:1},{id:'t2',board_id:'abcash',title:'募集配信文を3本作成',owner:'kumiko',status:'doing',memo:'税金フック／資産形成／QA構成',sort_order:2},{id:'t3',board_id:'abcash',title:'次回勉強会の日程を確定',owner:'client',status:'todo',memo:'',sort_order:3},{id:'t4',board_id:'abcash',title:'登壇者のアサイン',owner:'client',status:'done',memo:'',sort_order:4}],
+  nurture_stuck:[{board_id:'abcash',owner:'kumiko',content:'配信文のトーンをABCashブランドに合わせて調整中（本日中に共有予定）'},{board_id:'abcash',owner:'client',content:'勉強会の会場候補を2つに絞って検討中'}],
+  nurture_topics:[{id:'p1',board_id:'abcash',content:'初回配信は平日夜21時で合意',author:'kumiko',created_at:'2026-07-14T12:00:00Z'},{id:'p2',board_id:'abcash',content:'勉強会は月2回ペースで実施する方針',author:'client',created_at:'2026-07-13T09:00:00Z'}],
+  nurture_deliverables:[{id:'v1',board_id:'abcash',title:'ABCash向け 募集LP 初稿',category:'LP',url:'https://example.com',summary:'ファーストビュー3案＋価格訴求',delivered_on:'2026-07-12'},{id:'v2',board_id:'abcash',title:'6月ファネル分析レポート',category:'レポート',url:'https://example.com',summary:'面談化率・入会率の要因分解',delivered_on:'2026-07-03'}]
 }; const KEY='nurture_demo_abcash';
   let DB; try{ DB=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   if(!DB || !DB.nurture_exec_notes || !DB.nurture_exec_notes[0] || !DB.nurture_exec_notes[0].kind){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem(KEY,JSON.stringify(DB)); }
@@ -1405,7 +1392,7 @@ function makeSB(){ const SEED={
     then(res){return Promise.resolve(this._run()).then(res);} }
   return { from:t=>new Q(t), auth:{getSession:async()=>({data:{session:{user:{email:'demo'}}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>{}} };
 }
-function switchRole(){ const seq=['kumiko','client','executive']; ROLE=seq[(seq.indexOf(ROLE)+1)%3]; localStorage.setItem('nurture_demo_abcash_role',ROLE); paintRole(); }
+function switchRole(){ const seq=['kumiko','client']; ROLE=seq[(seq.indexOf(ROLE)+1)%seq.length]||'kumiko'; localStorage.setItem('nurture_demo_abcash_role',ROLE); paintRole(); }
 (function demoInit(){ document.getElementById('authGate').classList.add('hide'); ROLE = localStorage.getItem('nurture_demo_abcash_role') || 'kumiko'; BID='abcash'; loadAll().then(()=>paintRole()); setInterval(()=>{ if(!document.querySelector('.overlay.on') && !isEditing()) loadAll(); }, 4000); })();
 </script>
 </body>
