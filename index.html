@@ -194,6 +194,7 @@ header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;hei
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;
   padding:12px 22px;border-radius:30px;font-size:.85rem;font-weight:600;opacity:0;pointer-events:none;transition:.3s;z-index:60;box-shadow:var(--shadow)}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .undo-btn{text-decoration:underline;cursor:pointer;margin-left:12px;color:#ffd36e;font-weight:800}
 
 /* ---------- 経営セクション（役員） ---------- */
 .exec-section{background:linear-gradient(125deg,var(--navy-deep),#37597f 70%,#4f6f92);color:#fff;
@@ -251,26 +252,52 @@ details.paste-fold[open] > summary::before{content:"−"}
 .form-row{display:flex;gap:8px}
 .form-row .w-unit{max-width:120px}
 /* KPIカード */
-.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
-@media(max-width:720px){.kpi-grid{grid-template-columns:1fr}}
-.kpi{background:#fff;color:var(--ink);border-radius:13px;padding:14px;position:relative}
-.kpi.achieved{opacity:.72}
-.kpi-label{font-size:.74rem;font-weight:800;color:var(--blue-mid);letter-spacing:.02em}
-.kpi-nums{display:flex;align-items:baseline;gap:8px;margin-top:5px;flex-wrap:wrap}
-.kpi-nums .cur{font-size:1.7rem;font-weight:800;color:var(--navy);line-height:1}
-.kpi-nums .cur .u,.kpi-nums .tgt .u{font-size:.9rem;font-weight:700;margin-left:1px}
-.kpi-nums .sep{font-size:.72rem;color:var(--muted)}
-.kpi-nums .tgt{font-size:1.05rem;font-weight:800;color:var(--pink-deep)}
-.kpi-bar{height:9px;background:#eef2f7;border-radius:20px;overflow:hidden;margin-top:9px}
-.kpi-bar > i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,var(--blue),#f0c869);transition:width .5s}
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+@media(max-width:820px){.kpi-grid{grid-template-columns:1fr}}
+.kpi{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:20px;position:relative;
+  box-shadow:0 6px 20px rgba(38,64,95,.07);display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+.kpi.done-kpi{border-color:#bfe3bd;background:linear-gradient(180deg,#f6fbf5,#fff)}
+.kpi-main{min-width:0}
+.kpi-label{font-size:.82rem;font-weight:800;color:var(--blue-mid);letter-spacing:.02em}
+.kpi-label .dir{font-size:.6rem;color:var(--muted);margin-left:6px;font-weight:700}
+.kpi-nums{display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap}
+.kpi-nums .cur{font-size:2.9rem;font-weight:800;color:var(--navy);line-height:.95;letter-spacing:-.02em}
+.kpi.done-kpi .kpi-nums .cur{color:var(--ok)}
+.kpi-nums .cur .u{font-size:1.1rem;font-weight:700;margin-left:2px}
+.kpi-nums .tgt{font-size:.92rem;font-weight:700;color:var(--muted)}
+.kpi-nums .tgt b{color:var(--pink-deep);font-weight:800}
+.kpi-remain{font-size:.74rem;font-weight:700;color:var(--blue-mid);margin-top:6px}
+.kpi-remain.reached{color:var(--ok)}
+.kpi-bar{height:12px;background:#eef2f7;border-radius:20px;overflow:hidden;margin-top:11px}
+.kpi-bar > i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,var(--blue),#f0c869);transition:width .7s cubic-bezier(.2,.8,.2,1)}
 .kpi-bar.done > i{background:linear-gradient(90deg,#8CC152,var(--ok))}
-.kpi-pct{font-size:.68rem;color:var(--muted);margin-top:4px;text-align:right}
-.kpi-title{font-size:.85rem;font-weight:700;color:var(--ink);margin-top:9px;line-height:1.5}
+.kpi-title{font-size:.86rem;font-weight:700;color:var(--ink);margin-top:12px;line-height:1.5}
 .kpi-body{font-size:.76rem;color:var(--muted);margin-top:4px;white-space:pre-wrap;line-height:1.6}
-.kpi-actions{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
-.kpi-actions button{font-size:.66rem;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:14px;padding:3px 10px;cursor:pointer}
+/* ドーナツ達成度リング */
+.kpi-ring{width:104px;height:104px;flex:0 0 auto;position:relative}
+.kpi-ring svg{transform:rotate(-90deg)}
+.kpi-ring .rbg{fill:none;stroke:#eef2f7;stroke-width:5}
+.kpi-ring .rfg{fill:none;stroke:var(--blue-mid);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)}
+.kpi-ring.done .rfg{stroke:var(--ok)}
+.kpi-ring .rlabel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.kpi-ring .rpct{font-size:1.35rem;font-weight:800;color:var(--navy);line-height:1}
+.kpi-ring.done .rpct{color:var(--ok)}
+.kpi-ring .rsub{font-size:.58rem;font-weight:700;color:var(--muted);margin-top:1px}
+.kpi-actions{grid-column:1/-1;display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:12px}
+.kpi-actions button{font-size:.68rem;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:14px;padding:4px 12px;cursor:pointer}
 .kpi-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
-.kpi-actions .upd{border-color:var(--pink-line);color:var(--pink-deep)}
+.kpi-actions .upd{border-color:var(--pink-line);color:var(--pink-deep);font-weight:700}
+.kpi-noval{grid-column:1/-1;font-size:.78rem;color:var(--muted);margin-top:4px}
+/* ヘッダーの目標サマリー */
+.goal-summary{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.gs-chip{background:rgba(255,255,255,.16);border-radius:12px;padding:8px 13px;min-width:150px;flex:1 1 auto;max-width:260px}
+.gs-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.72rem;font-weight:700;color:#fff}
+.gs-top .gv{font-size:.82rem}
+.gs-top .gv b{font-size:1rem}
+.gs-bar{height:6px;background:rgba(255,255,255,.25);border-radius:10px;margin-top:6px;overflow:hidden}
+.gs-bar>i{display:block;height:100%;background:#f0c869;border-radius:10px;transition:width .6s}
+.gs-bar.done>i{background:#8CC152}
+.gs-pct{font-size:.64rem;color:rgba(255,255,255,.85);font-weight:700;margin-top:3px;text-align:right}
 /* 役員コメント */
 .exec-note-form textarea{width:100%;border:none;border-radius:10px;padding:11px 13px;font-family:inherit;font-size:.88rem;color:var(--ink);min-height:56px;resize:vertical;margin-bottom:8px}
 .exec-note-list{list-style:none;margin-top:6px}
@@ -374,7 +401,8 @@ details.rec .rec-body{padding:0 18px 18px}
       </div>
       <div class="who">表示中：<b id="whoName">－</b> <button onclick="switchRole()">切替</button></div>
     </div>
-    <div class="progress"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
+    <div class="progress" title="タスクの完了率"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
+    <div class="goal-summary" id="goalSummary"></div>
   </header>
 
   <!-- ===== 1. タスク｜やるべきこと（議事録貼り付けで自動仕分け） ===== -->
@@ -528,6 +556,7 @@ details.rec .rec-body{padding:0 18px 18px}
     <span class="dot" id="connDot"></span><span id="connTxt">接続確認中…</span>
     <button class="linkbtn" onclick="loadAll(true)">↻ 今すぐ更新</button>
     <button class="linkbtn" onclick="runDiag()">接続診断</button>
+    <button class="linkbtn" onclick="downloadBackup()">データを保存</button>
     <span id="lastSync"></span>
     <span id="authUser"></span>
     <button class="logoutbtn" onclick="logout()">ログアウト</button>
@@ -813,9 +842,11 @@ async function editMemo(id){
 async function delTask(id){
   const t=TASKS.find(x=>x.id===id); if(!t)return;
   if(!confirm('このタスクを削除しますか？\n「'+t.title+'」'))return;
+  const row=Object.assign({},t);
   const {error}=await sb.from('nurture_tasks').delete().eq('id',id);
   if(error){toast('削除エラー');return;}
   TASKS=TASKS.filter(x=>x.id!==id); renderTasks();
+  showUndo('タスクを削除しました','nurture_tasks',row);
 }
 async function patchTask(id,patch){
   if(!sb)return;
@@ -850,9 +881,12 @@ async function addTopic(content){
   TOPICS.unshift(data);
 }
 async function delTopic(id){
+  const t=TOPICS.find(x=>x.id===id); if(!t)return;
   if(!confirm('この議題ログを削除しますか？'))return;
+  const row=Object.assign({},t);
   await sb.from('nurture_topics').delete().eq('id',id);
   TOPICS=TOPICS.filter(x=>x.id!==id); renderTopics();
+  showUndo('議題ログを削除しました','nurture_topics',row);
 }
 
 // ============================================================
@@ -873,46 +907,82 @@ function ownerLabel(o){ return (o==='kumiko'||o==='executive')?'株式会社Mero
 // ============================================================
 function toggleDirForm(){ if(!canEditDirectives())return; document.getElementById('dirForm').classList.toggle('on'); }
 function numOr(v){ const n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; }
+// 目標の進捗を計算（方向対応）: {pct, done, hasProg}
+function kpiProgress(d){
+  const tgt=numOr(d.target_value), cur=numOr(d.current_value);
+  if(cur===null || tgt===null || tgt===0) return {pct:null,done:false,hasProg:false,cur,tgt};
+  const down=d.goal_dir==='down';
+  let pct, done;
+  if(down){ if(cur<=tgt){pct=100;done=true;} else {pct=Math.round(tgt/cur*100);done=false;} }
+  else    { pct=Math.round(cur/tgt*100); done=cur>=tgt; }
+  pct=Math.max(0,Math.min(100,pct));
+  return {pct,done,hasProg:true,cur,tgt,down};
+}
 function renderDirectives(){
   const list=document.getElementById('dirList'); if(!list) return;
   list.innerHTML='';
   document.getElementById('dirEmpty').style.display = DIRECTIVES.length?'none':'block';
   const canEdit=canEditDirectives();
+  const R=15.9155, C=2*Math.PI*R; // 円周
   DIRECTIVES.forEach(d=>{
     const el=document.createElement('div');
-    el.className='kpi'+(d.status==='achieved'?' achieved':'');
-    const tgt=numOr(d.target_value), cur=numOr(d.current_value);
+    const p=kpiProgress(d);
+    const isDone = d.status==='achieved' || p.done;
+    el.className='kpi'+(isDone?' done-kpi':'');
     const down=d.goal_dir==='down';
     const u=d.unit?('<span class="u">'+esc(d.unit)+'</span>'):'';
-    let html='';
-    if(d.metric_label) html+='<div class="kpi-label">'+esc(d.metric_label)+(down?'<span class="kpi-dir">▼低いほど良い</span>':'')+'</div>';
-    if(cur!==null || tgt!==null){
-      html+='<div class="kpi-nums">'+
-        '<span class="cur">'+(cur!==null?esc(d.current_value):'—')+(cur!==null?u:'')+'</span>'+
-        '<span class="sep">/ 目標</span>'+
-        '<span class="tgt">'+(tgt!==null?esc(d.target_value):'—')+(tgt!==null?u:'')+'</span></div>';
-      if(cur!==null && tgt!==null && tgt!==0){
-        let pct, done;
-        if(down){ if(cur<=tgt){pct=100;done=true;} else {pct=Math.round(tgt/cur*100);done=false;} }
-        else    { pct=Math.round(cur/tgt*100); done=cur>=tgt; }
-        pct=Math.max(0,Math.min(100,pct));
-        html+='<div class="kpi-bar'+(done?' done':'')+'"><i style="width:'+pct+'%"></i></div>'+
-              '<div class="kpi-pct">達成度 '+pct+'%'+(done?'（目標達成）':'')+'</div>';
-      }
+    let main='';
+    main+='<div class="kpi-label">'+(d.metric_label?esc(d.metric_label):esc(d.title))+(down?'<span class="dir">▼低いほど良い</span>':'')+'</div>';
+    if(p.cur!==null || p.tgt!==null){
+      main+='<div class="kpi-nums">'+
+        '<span class="cur">'+(p.cur!==null?esc(d.current_value):'—')+(p.cur!==null?u:'')+'</span>'+
+        '<span class="tgt">/ 目標 <b>'+(p.tgt!==null?esc(d.target_value):'—')+(p.tgt!==null?esc(d.unit||''):'')+'</b></span></div>';
     }
-    html+='<div class="kpi-title">'+esc(d.title)+'</div>';
-    if(d.body) html+='<div class="kpi-body">'+esc(d.body)+'</div>';
+    if(p.hasProg){
+      // 目標までの残り
+      const diff = down ? (p.cur - p.tgt) : (p.tgt - p.cur);
+      const remainHtml = p.done ? '<div class="kpi-remain reached">目標達成しています</div>'
+        : '<div class="kpi-remain">目標まで あと '+Math.abs(Math.round(diff*10)/10)+esc(d.unit||'')+'</div>';
+      main+=remainHtml+'<div class="kpi-bar'+(p.done?' done':'')+'"><i style="width:'+p.pct+'%"></i></div>';
+    }
+    if(d.metric_label) main+='<div class="kpi-title">'+esc(d.title)+'</div>';
+    if(d.body) main+='<div class="kpi-body">'+esc(d.body)+'</div>';
+
+    let ring='';
+    if(p.hasProg){
+      const off = C*(1-p.pct/100);
+      ring='<div class="kpi-ring'+(p.done?' done':'')+'"><svg viewBox="0 0 42 42" width="104" height="104">'+
+        '<circle class="rbg" cx="21" cy="21" r="'+R+'"></circle>'+
+        '<circle class="rfg" cx="21" cy="21" r="'+R+'" stroke-dasharray="'+C.toFixed(2)+'" stroke-dashoffset="'+off.toFixed(2)+'"></circle>'+
+        '</svg><div class="rlabel"><div class="rpct">'+p.pct+'%</div><div class="rsub">達成</div></div></div>';
+    }
+
+    let actions='';
     if(canEdit){
-      html+='<div class="kpi-actions">'+
+      actions='<div class="kpi-actions">'+
         '<button class="upd" onclick="updateKpiCurrent(\''+d.id+'\')">現在値を更新</button>'+
-        '<button onclick="toggleDirAchieved(\''+d.id+'\')">'+(d.status==='achieved'?'再開':'達成')+'</button>'+
+        '<button onclick="toggleDirAchieved(\''+d.id+'\')">'+(d.status==='achieved'?'進行中に戻す':'達成にする')+'</button>'+
         '<button onclick="editDirective(\''+d.id+'\')">編集</button>'+
         '<button onclick="delDirective(\''+d.id+'\')">削除</button>'+
       '</div>';
     }
-    el.innerHTML=html;
+    el.innerHTML='<div class="kpi-main">'+main+'</div>'+(ring||'<div></div>')+actions;
     list.appendChild(el);
   });
+  renderGoalSummary();
+}
+// ヘッダーの目標サマリー（タスクゲージと並べて目標も一目で）
+function renderGoalSummary(){
+  const gs=document.getElementById('goalSummary'); if(!gs) return;
+  const withProg=DIRECTIVES.filter(d=>kpiProgress(d).hasProg);
+  if(!withProg.length){ gs.innerHTML=''; return; }
+  gs.innerHTML=withProg.map(d=>{
+    const p=kpiProgress(d);
+    return '<div class="gs-chip"><div class="gs-top"><span>'+esc(d.metric_label||d.title)+'</span>'+
+      '<span class="gv"><b>'+esc(d.current_value)+'</b>'+esc(d.unit||'')+' / '+esc(d.target_value)+esc(d.unit||'')+'</span></div>'+
+      '<div class="gs-bar'+(p.done?' done':'')+'"><i style="width:'+p.pct+'%"></i></div>'+
+      '<div class="gs-pct">達成度 '+p.pct+'%'+(p.done?'（達成）':'')+'</div></div>';
+  }).join('');
 }
 async function addDirective(){
   if(!sb||!canEditDirectives())return;
@@ -955,9 +1025,11 @@ async function toggleDirAchieved(id){
 async function delDirective(id){
   if(!canEditDirectives())return;
   const d=DIRECTIVES.find(x=>x.id===id); if(!d)return;
-  if(!confirm('削除しますか？\n「'+d.title+'」'))return;
+  if(!confirm('この目標を削除しますか？\n「'+d.title+'」'))return;
+  const row=Object.assign({},d);
   await sb.from('nurture_directives').delete().eq('id',id);
   DIRECTIVES=DIRECTIVES.filter(x=>x.id!==id); renderDirectives();
+  showUndo('目標を削除しました','nurture_directives',row);
 }
 
 // 役員コメント（一言＝note ／ 指摘・依頼＝request の2種類）
@@ -995,9 +1067,12 @@ async function addExecNote(kind){
 }
 async function delExecNote(id){
   if(!canEditDirectives())return;
+  const n=EXEC_NOTES.find(x=>x.id===id); if(!n)return;
   if(!confirm('このコメントを削除しますか？'))return;
+  const row=Object.assign({},n);
   await sb.from('nurture_exec_notes').delete().eq('id',id);
   EXEC_NOTES=EXEC_NOTES.filter(x=>x.id!==id); renderExecNotes();
+  showUndo('コメントを削除しました','nurture_exec_notes',row);
 }
 
 // ============================================================
@@ -1109,9 +1184,11 @@ async function addDeliverable(){
 }
 async function delDeliverable(id){
   const d=DELIVS.find(x=>x.id===id); if(!d)return;
-  if(!confirm('削除しますか？\n「'+d.title+'」'))return;
+  if(!confirm('この成果物を削除しますか？\n「'+d.title+'」'))return;
+  const row=Object.assign({},d);
   await sb.from('nurture_deliverables').delete().eq('id',id);
   DELIVS=DELIVS.filter(x=>x.id!==id); renderDeliverables();
+  showUndo('成果物を削除しました','nurture_deliverables',row);
 }
 
 // ============================================================
@@ -1244,6 +1321,35 @@ function toast(msg){
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),2200);
 }
 function closeEl(id){ document.getElementById(id).classList.remove('on'); }
+
+// ---- 誤削除防止：削除の「元に戻す」（数秒間 復元可能）----
+let _undo=null;
+function showUndo(msg, table, row){
+  _undo={table, row:Object.assign({},row)};
+  const t=document.getElementById('toast');
+  t.innerHTML=esc(msg)+' <span class="undo-btn" onclick="doUndo()">元に戻す</span>';
+  t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>{ t.classList.remove('on'); _undo=null; }, 8000);
+}
+async function doUndo(){
+  if(!_undo || !sb) return;
+  const u=_undo; _undo=null;
+  const {error}=await sb.from(u.table).insert(u.row);
+  if(error){ toast('復元エラー：'+error.message); return; }
+  toast('元に戻しました'); loadAll();
+}
+// ---- 現在のボードのデータをJSONで手元に保存（バックアップ）----
+function downloadBackup(){
+  try{
+    const data={ board:BID, client:(META.client_label||''), exported_at:new Date().toISOString(),
+      tasks:TASKS, directives:DIRECTIVES, deliverables:DELIVS, exec_notes:EXEC_NOTES, topics:TOPICS };
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='nurture_'+BID+'_'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    toast('このボードのデータを保存しました');
+  }catch(e){ toast('保存に失敗しました'); }
+}
 
 // ============================================================
 // 認証（許可アドレスのみ・メールリンクログイン）
