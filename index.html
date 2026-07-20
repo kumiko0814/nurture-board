@@ -288,6 +288,17 @@ details.paste-fold[open] > summary::before{content:"−"}
 .kpi-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
 .kpi-actions .upd{border-color:var(--pink-line);color:var(--pink-deep);font-weight:700}
 .kpi-noval{grid-column:1/-1;font-size:.78rem;color:var(--muted);margin-top:4px}
+/* KPIの数字をその場で直接クリック編集 */
+.kpi .ed{outline:none;cursor:text;border-radius:6px;transition:.12s}
+.kpi .ed:focus{background:#fff;box-shadow:0 0 0 2px var(--blue);padding:0 4px;margin:0 -2px}
+.kpi .cur.ed,.kpi .tgt b.ed{display:inline-block;min-width:.7em;border-bottom:2px dashed var(--blue-line)}
+.kpi .cur.ed:focus,.kpi .tgt b.ed:focus{border-bottom-color:transparent}
+.kpi .cur.ed:empty:before,.kpi .tgt b.ed:empty:before,.kpi-label .ed:empty:before,.kpi-title.ed:empty:before{content:attr(data-ph);color:#b9c4d1;font-weight:500}
+.kpi-label .ed{border-bottom:1px dashed transparent}
+.kpi-label .ed:hover{border-bottom-color:var(--blue-line)}
+.kpi-title.ed{border-radius:8px}
+.kpi-title.ed:hover{background:#f6f9fc}
+.kpi-edit-hint{font-size:.74rem;color:var(--blue-mid);background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:10px;padding:8px 12px;margin-top:8px}
 /* ヘッダーの目標サマリー */
 .goal-summary{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
 .gs-chip{background:rgba(255,255,255,.16);border-radius:12px;padding:8px 13px;min-width:150px;flex:1 1 auto;max-width:260px}
@@ -447,6 +458,7 @@ details.rec .rec-body{padding:0 18px 18px}
     <h2>目指すべき目標 <span class="tag">今追う数値（目標と現在値）</span>
       <button class="mini-add" id="dirAddBtn" onclick="toggleDirForm()" style="margin-left:auto">＋ 目標を追加</button></h2>
     <div class="desc">お互いで話し合って決めた目標を入力します（成約率・キャンセル率・件数など、いくつでも）。</div>
+    <div class="kpi-edit-hint">数字（現在値・目標値）はカード上の<b>点線の数字をクリックして直接入力・変更</b>できます。達成度は自動で計算されます。くみこ・クライアントのどちらも編集できます。</div>
     <div class="subform" id="dirForm">
       <input id="dirTitle" placeholder="ねらい・見出し（例：初回面談からの成約率を引き上げる）">
       <div class="form-row">
@@ -935,22 +947,23 @@ function renderDirectives(){
     const isDone = d.status==='achieved' || p.done;
     el.className='kpi'+(isDone?' done-kpi':'');
     const down=d.goal_dir==='down';
-    const u=d.unit?('<span class="u">'+esc(d.unit)+'</span>'):'';
+    const ce=canEdit?'true':'false';
+    const uTxt=esc(d.unit||'');
+    const ed=(f,val,ph,cls)=>'<span class="'+cls+'" contenteditable="'+ce+'" data-id="'+d.id+'" data-f="'+f+'" data-ph="'+ph+'" onblur="saveKpiField(this)" onkeydown="taskEditKey(event)">'+val+'</span>';
     let main='';
-    main+='<div class="kpi-label">'+(d.metric_label?esc(d.metric_label):esc(d.title))+(down?'<span class="dir">▼低いほど良い</span>':'')+'</div>';
-    if(p.cur!==null || p.tgt!==null){
-      main+='<div class="kpi-nums">'+
-        '<span class="cur">'+(p.cur!==null?esc(d.current_value):'—')+(p.cur!==null?u:'')+'</span>'+
-        '<span class="tgt">/ 目標 <b>'+(p.tgt!==null?esc(d.target_value):'—')+(p.tgt!==null?esc(d.unit||''):'')+'</b></span></div>';
-    }
+    main+='<div class="kpi-label">'+ed('metric_label',esc(d.metric_label||''),'指標名を入力','ed')+(down?'<span class="dir">▼低いほど良い</span>':'')+'</div>';
+    main+='<div class="kpi-nums">'+
+      ed('current_value',(p.cur!==null?esc(d.current_value):''),'現在値','cur ed')+'<span class="u">'+uTxt+'</span>'+
+      '<span class="tgt">/ 目標 <b class="ed" contenteditable="'+ce+'" data-id="'+d.id+'" data-f="target_value" data-ph="目標" onblur="saveKpiField(this)" onkeydown="taskEditKey(event)">'+(p.tgt!==null?esc(d.target_value):'')+'</b>'+uTxt+'</span></div>';
     if(p.hasProg){
-      // 目標までの残り
       const diff = down ? (p.cur - p.tgt) : (p.tgt - p.cur);
       const remainHtml = p.done ? '<div class="kpi-remain reached">目標達成しています</div>'
         : '<div class="kpi-remain">目標まで あと '+Math.abs(Math.round(diff*10)/10)+esc(d.unit||'')+'</div>';
       main+=remainHtml+'<div class="kpi-bar'+(p.done?' done':'')+'"><i style="width:'+p.pct+'%"></i></div>';
+    }else if(canEdit){
+      main+='<div class="kpi-remain">現在値と目標値を入れると達成度が自動計算されます</div>';
     }
-    if(d.metric_label) main+='<div class="kpi-title">'+esc(d.title)+'</div>';
+    main+='<div class="kpi-title ed" contenteditable="'+ce+'" data-id="'+d.id+'" data-f="title" data-ph="この目標のねらい・説明" onblur="saveKpiField(this)" onkeydown="taskEditKey(event)">'+esc(d.title||'')+'</div>';
     if(d.body) main+='<div class="kpi-body">'+esc(d.body)+'</div>';
 
     let ring='';
@@ -965,9 +978,8 @@ function renderDirectives(){
     let actions='';
     if(canEdit){
       actions='<div class="kpi-actions">'+
-        '<button class="upd" onclick="updateKpiCurrent(\''+d.id+'\')">現在値を更新</button>'+
         '<button onclick="toggleDirAchieved(\''+d.id+'\')">'+(d.status==='achieved'?'進行中に戻す':'達成にする')+'</button>'+
-        '<button onclick="editDirective(\''+d.id+'\')">編集</button>'+
+        '<button onclick="editDirective(\''+d.id+'\')">単位・向きを編集</button>'+
         '<button onclick="delDirective(\''+d.id+'\')">削除</button>'+
       '</div>';
     }
@@ -1005,6 +1017,17 @@ async function addDirective(){
   document.getElementById('dirGoalDir').value='up';
   document.getElementById('dirForm').classList.remove('on');
   renderDirectives(); toast('登録しました');
+}
+// 目標カードの数字・見出しをその場で保存（くみこ・クライアント両方が編集可）
+function saveKpiField(el){
+  if(!canEditDirectives()) return;
+  const id=el.getAttribute('data-id'), f=el.getAttribute('data-f');
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d) return;
+  const v=(el.textContent||'').trim();
+  if(v===((d[f]==null?'':String(d[f])))) return;
+  const patch={}; patch[f]=v;
+  patchRow('nurture_directives',DIRECTIVES,id,patch,renderDirectives);
+  toast('保存しました');
 }
 async function updateKpiCurrent(id){
   const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
