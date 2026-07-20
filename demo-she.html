@@ -1,0 +1,1528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ナーチャリング共有ボード</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase_config.js"></script>
+<style>
+:root{
+  --pink:#F5A6C8; --pink-deep:#E07AAA; --pink-soft:#fbeef1; --pink-line:#f2cfdd;
+  --navy:#26405f; --navy-deep:#1d3149;
+  --blue:#8FC0EC; --blue-mid:#5f97be; --blue-soft:#f4f9fd; --blue-line:#cdd6e0;
+  --purple:#B98BEA; --purple-soft:#efe6fb;
+  --ink:#3a4657; --muted:#8a97a8; --ok:#5FA85A; --line:#e4ebf3;
+  --shadow:0 6px 22px rgba(38,64,95,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",sans-serif;
+  color:var(--ink);
+  background:linear-gradient(160deg,#f4f9fd 0%,#fbeef1 100%);
+  min-height:100vh; -webkit-font-smoothing:antialiased; line-height:1.6;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 80px}
+
+/* ---------- 管理者・役員のボード横断タブ ---------- */
+.board-tabs{display:none;gap:6px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px;margin-bottom:14px;overflow-x:auto;box-shadow:0 6px 22px rgba(38,64,95,.10)}
+.board-tabs.on{display:flex}
+.board-tab{border:none;background:none;padding:10px 18px;border-radius:10px;font-family:inherit;font-weight:700;font-size:.86rem;color:var(--muted);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px;transition:.15s}
+.board-tab:hover{background:var(--blue-soft);color:var(--navy)}
+.board-tab.active{background:linear-gradient(120deg,var(--navy),var(--blue-mid));color:#fff}
+.board-tab .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.65}
+.board-tabs .tablabel{font-size:.66rem;color:var(--muted);font-weight:700;padding:0 8px;display:flex;align-items:center;white-space:nowrap}
+
+/* ---------- auth gate ---------- */
+.authgate{position:fixed;inset:0;z-index:100;background:linear-gradient(160deg,#f4f9fd,#fbeef1);
+  display:flex;align-items:center;justify-content:center;padding:20px}
+.authgate.hide{display:none}
+.authcard{background:#fff;border-radius:24px;box-shadow:0 12px 40px rgba(38,64,95,.16);
+  max-width:400px;width:100%;padding:34px 28px;text-align:center}
+.authlock{font-size:2.4rem;margin-bottom:6px}
+.authsent{font-size:2.6rem;margin-bottom:10px}
+.authcard h2{color:#26405f;font-size:1.2rem;margin-bottom:12px}
+.authlead{font-size:.86rem;color:#5a6577;margin-bottom:16px;line-height:1.7}
+.authcard input{width:100%;border:1.5px solid #cdd6e0;border-radius:12px;padding:13px 15px;
+  font-size:1rem;font-family:inherit;margin-bottom:12px;text-align:center}
+.authcard input:focus{outline:none;border-color:#F5A6C8}
+.authbtn{width:100%;justify-content:center}
+.authmsg{font-size:.8rem;margin-top:12px;min-height:18px}
+.authmsg.err{color:#E07AAA;font-weight:700}
+.authmsg.ok{color:#5FA85A;font-weight:700}
+.logoutbtn{background:none;border:none;color:#8a97a8;cursor:pointer;text-decoration:underline;font-size:.75rem}
+
+/* ---------- header ---------- */
+header{
+  background:linear-gradient(120deg,var(--navy) 0%,var(--blue-mid) 55%,var(--pink-deep) 130%);
+  border-radius:22px;padding:22px 24px;color:#fff;box-shadow:var(--shadow);
+  position:relative;overflow:hidden;
+}
+header::after{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;
+  background:radial-gradient(circle,rgba(255,255,255,.22),transparent 70%);}
+.h-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.h-title{font-size:1.5rem;font-weight:800;letter-spacing:.02em;line-height:1.3}
+.h-title .edit{font-size:.72rem;opacity:.75;cursor:pointer;margin-left:8px;border:1px solid rgba(255,255,255,.4);
+  padding:2px 8px;border-radius:20px;font-weight:600;white-space:nowrap}
+.h-sub{font-size:.82rem;opacity:.9;margin-top:6px}
+.who{display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.16);
+  padding:6px 8px 6px 12px;border-radius:30px;font-size:.8rem}
+.who b{font-weight:700}
+.who button{border:none;background:#fff;color:var(--navy);font-weight:700;border-radius:20px;
+  padding:5px 12px;cursor:pointer;font-size:.78rem}
+
+/* ---------- progress bar ---------- */
+.progress{margin-top:16px;background:rgba(255,255,255,.22);border-radius:30px;height:16px;overflow:hidden;position:relative}
+.progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--pink),#ffd36e);border-radius:30px;transition:width .5s}
+.progress span{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700}
+
+/* ---------- cards / sections ---------- */
+.section{background:#fff;border-radius:18px;padding:18px 18px 16px;margin-top:18px;box-shadow:var(--shadow)}
+.section > h2{font-size:1.02rem;color:var(--navy);display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.section > h2 .tag{font-size:.68rem;font-weight:600;background:var(--blue-soft);color:var(--blue-mid);
+  padding:2px 10px;border-radius:20px;border:1px solid var(--blue-line)}
+.section .desc{font-size:.78rem;color:var(--muted);margin-bottom:12px}
+
+/* ---------- two person todo ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.cols{grid-template-columns:1fr}}
+.col{border:1.5px solid var(--line);border-radius:16px;overflow:hidden;background:#fff}
+.col.kumiko{border-color:var(--pink-line)}
+.col.client{border-color:var(--blue-line)}
+.col-head{padding:11px 14px;font-weight:800;font-size:.92rem;display:flex;justify-content:space-between;align-items:center}
+.col.kumiko .col-head{background:var(--pink-soft);color:var(--pink-deep)}
+.col.client .col-head{background:var(--blue-soft);color:var(--blue-mid)}
+.col-head .cnt{font-size:.72rem;font-weight:700;background:#fff;border-radius:20px;padding:2px 10px}
+.mine-badge{font-size:.62rem;background:#fff;color:var(--navy);border-radius:20px;padding:1px 8px;margin-left:6px;border:1px solid currentColor}
+.tasklist{list-style:none;padding:8px;min-height:60px}
+.task{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:12px;margin-bottom:6px;
+  background:#fbfdff;border:1px solid var(--line);transition:.15s}
+.task:hover{border-color:var(--blue)}
+.task.done{opacity:.55;background:#f5f7f9}
+.task.done .t-title{text-decoration:line-through;color:var(--muted)}
+.check{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:2px solid var(--blue);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:.8rem;color:#fff;background:#fff;transition:.15s;margin-top:1px}
+.col.kumiko .check{border-color:var(--pink-deep)}
+.task.done .check{background:var(--ok);border-color:var(--ok)}
+.task.doing .check{background:#ffc94d;border-color:#f0ab00}
+.t-body{flex:1;min-width:0}
+.t-title{font-size:.9rem;word-break:break-word;cursor:text;outline:none;border-radius:6px;padding:2px 4px;margin:-2px -4px}
+.t-title:focus{background:#fff;box-shadow:0 0 0 2px var(--blue)}
+.t-memo{font-size:.75rem;color:var(--pink-deep);margin-top:5px;padding:5px 9px;border-radius:8px;
+  max-width:100%;word-break:break-word;outline:none;cursor:text;min-height:1.3em}
+.t-memo:not(:empty){background:var(--pink-soft)}
+.t-memo:empty:before{content:attr(data-ph);color:var(--muted);font-size:.72rem}
+.t-memo:focus{box-shadow:0 0 0 2px var(--pink)}
+.t-memo:focus:empty:before{content:''}
+.t-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+.t-actions button{font-size:.68rem;border:1px solid var(--line);background:#fff;color:var(--muted);
+  border-radius:16px;padding:3px 9px;cursor:pointer}
+.t-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
+.t-actions .del:hover{border-color:var(--pink-deep);color:var(--pink-deep)}
+.addrow{display:flex;gap:6px;padding:8px}
+.addrow input{flex:1;border:1.5px solid var(--line);border-radius:12px;padding:8px 12px;font-size:.85rem;font-family:inherit}
+.addrow input:focus{outline:none;border-color:var(--blue)}
+.addrow button{border:none;border-radius:12px;padding:8px 14px;font-weight:700;font-size:.82rem;cursor:pointer;color:#fff}
+.col.kumiko .addrow button{background:var(--pink-deep)}
+.col.client .addrow button{background:var(--blue-mid)}
+
+/* ---------- stuck memos ---------- */
+.stuck-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.stuck-grid{grid-template-columns:1fr}}
+.stuck{border-radius:14px;padding:14px;border:1.5px dashed}
+.stuck.kumiko{background:var(--pink-soft);border-color:var(--pink)}
+.stuck.client{background:var(--blue-soft);border-color:var(--blue)}
+.stuck label{font-size:.8rem;font-weight:800;display:block;margin-bottom:7px}
+.stuck.kumiko label{color:var(--pink-deep)}
+.stuck.client label{color:var(--blue-mid)}
+.stuck textarea{width:100%;border:none;background:rgba(255,255,255,.7);border-radius:10px;padding:10px;
+  font-family:inherit;font-size:.85rem;resize:vertical;min-height:70px;color:var(--ink)}
+.stuck textarea:focus{outline:2px solid rgba(0,0,0,.06)}
+.stuck .saved{font-size:.68rem;color:var(--muted);margin-top:4px;height:14px}
+
+/* ---------- paste / topics ---------- */
+.paste-box{width:100%;border:1.5px solid var(--blue-line);border-radius:14px;padding:12px;font-family:inherit;
+  font-size:.88rem;min-height:90px;resize:vertical;background:var(--blue-soft)}
+.paste-box:focus{outline:none;border-color:var(--blue)}
+.paste-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.btn{border:none;border-radius:14px;padding:11px 20px;font-weight:800;font-size:.9rem;cursor:pointer;color:#fff;
+  background:linear-gradient(120deg,var(--purple),var(--pink-deep));box-shadow:0 4px 14px rgba(224,122,170,.35)}
+.btn:hover{filter:brightness(1.04)}
+.btn.ghost{background:#fff;color:var(--blue-mid);border:1.5px solid var(--blue-line);box-shadow:none}
+.hint{font-size:.74rem;color:var(--muted)}
+.topic-log{list-style:none;margin-top:6px;max-height:280px;overflow:auto}
+.topic-log li{padding:10px 12px;border-left:3px solid var(--purple);background:#faf8ff;border-radius:0 10px 10px 0;
+  margin-bottom:6px;font-size:.84rem;position:relative}
+.topic-log li .meta{font-size:.68rem;color:var(--muted);margin-top:3px;display:flex;justify-content:space-between}
+.topic-log li .tdel{cursor:pointer;color:var(--muted)}
+
+/* ---------- preview modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(29,49,73,.5);display:none;align-items:center;justify-content:center;
+  padding:16px;z-index:50}
+.overlay.on{display:flex}
+.modal{background:#fff;border-radius:20px;max-width:640px;width:100%;max-height:88vh;overflow:auto;padding:22px;box-shadow:var(--shadow)}
+.modal h3{color:var(--navy);margin-bottom:4px}
+.modal .desc{font-size:.8rem;color:var(--muted);margin-bottom:14px}
+.pv-item{display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:12px;margin-bottom:7px}
+.pv-item.istopic{background:var(--purple-soft)}
+.pv-item input.pv-title{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:.85rem;font-family:inherit}
+.pv-item select{border:1px solid var(--line);border-radius:8px;padding:7px;font-size:.8rem;font-family:inherit}
+.pv-item .rm{cursor:pointer;color:var(--muted);font-size:1.1rem;padding:0 4px}
+.pv-kind{font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.pv-kind.task{background:var(--pink-soft);color:var(--pink-deep)}
+.pv-kind.topic{background:var(--purple-soft);color:var(--purple)}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+
+/* settings modal */
+.setfield{margin-bottom:16px}
+.setfield label{display:block;font-size:.85rem;font-weight:800;color:var(--navy);margin-bottom:6px}
+.setfield label .req{font-size:.65rem;font-weight:700;background:var(--pink-soft);color:var(--pink-deep);padding:1px 8px;border-radius:20px;margin-left:6px}
+.setfield input{width:100%;border:1.5px solid var(--blue-line);border-radius:12px;padding:11px 13px;font-size:.95rem;font-family:inherit}
+.setfield input:focus{outline:none;border-color:var(--pink)}
+.setfield .fhint{font-size:.72rem;color:var(--muted);margin-top:5px}
+.rolepick{display:flex;gap:10px;flex-wrap:wrap}
+.rolebtn{flex:1;min-width:130px;display:flex;align-items:center;gap:8px;border:1.5px solid var(--blue-line);border-radius:12px;padding:12px 14px;cursor:pointer;font-weight:700;font-size:.9rem;color:var(--ink);transition:.15s}
+.rolebtn:has(input:checked){border-color:var(--pink);background:var(--pink-soft);color:var(--pink-deep)}
+.rolebtn input{accent-color:var(--pink-deep)}
+
+/* ---------- footer / status ---------- */
+.statusbar{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:22px;font-size:.75rem;color:var(--muted);flex-wrap:wrap}
+.dot{width:9px;height:9px;border-radius:50%;background:#c9d3df}
+.dot.ok{background:var(--ok)}.dot.err{background:var(--pink-deep)}
+.linkbtn{background:none;border:none;color:var(--blue-mid);cursor:pointer;text-decoration:underline;font-size:.75rem}
+.empty-note{text-align:center;color:var(--muted);font-size:.8rem;padding:14px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;
+  padding:12px 22px;border-radius:30px;font-size:.85rem;font-weight:600;opacity:0;pointer-events:none;transition:.3s;z-index:60;box-shadow:var(--shadow)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast .undo-btn{text-decoration:underline;cursor:pointer;margin-left:12px;color:#ffd36e;font-weight:800}
+
+/* ---------- 経営セクション（役員） ---------- */
+.exec-section{background:linear-gradient(125deg,var(--navy-deep),#37597f 70%,#4f6f92);color:#fff;
+  border-radius:20px;padding:20px;margin-top:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.exec-section::after{content:"";position:absolute;right:-30px;bottom:-40px;width:150px;height:150px;
+  background:radial-gradient(circle,rgba(240,200,105,.18),transparent 70%)}
+.exec-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.exec-head h2{color:#fff;font-size:1.05rem;display:flex;align-items:center;gap:10px;margin:0}
+.exec-badge{background:#f0c869;color:var(--navy-deep);font-size:.66rem;font-weight:800;padding:3px 11px;border-radius:20px;letter-spacing:.03em}
+.exec-desc{font-size:.78rem;opacity:.82;margin:8px 0 4px}
+.directive{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);border-radius:14px;
+  padding:14px 16px;margin-top:12px;position:relative}
+.directive.achieved{opacity:.62}
+.directive .d-title{font-weight:800;font-size:.98rem;line-height:1.5;padding-right:60px}
+.directive .d-body{font-size:.85rem;opacity:.92;margin-top:6px;white-space:pre-wrap;line-height:1.7}
+.directive .d-metric{margin-top:10px;background:#f0c869;color:var(--navy-deep);font-weight:800;font-size:.86rem;
+  padding:7px 14px;border-radius:9px;display:inline-block}
+.directive .d-metric .lbl{font-size:.66rem;font-weight:700;opacity:.7;display:block;margin-bottom:1px}
+.directive .d-actions{position:absolute;top:12px;right:12px;display:flex;gap:6px}
+.directive .d-actions button{font-size:.66rem;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);
+  color:#fff;border-radius:14px;padding:2px 9px;cursor:pointer}
+.exec-empty{opacity:.8;font-size:.85rem;padding:14px 4px}
+.exec-form{background:rgba(255,255,255,.12);border-radius:14px;padding:14px;margin-top:12px;display:none}
+.exec-form.on{display:block}
+.exec-form input,.exec-form textarea,.exec-form select{width:100%;border:none;border-radius:9px;padding:10px 12px;font-family:inherit;
+  font-size:.88rem;margin-bottom:8px;color:var(--ink)}
+.kpi-dir{font-size:.64rem;font-weight:700;color:var(--muted);margin-left:6px}
+/* 目標セクション（白背景）用にKPIカードへ枠 */
+.goal-section .kpi{border:1px solid var(--line);box-shadow:0 2px 10px rgba(38,64,95,.05)}
+.goal-section h2{align-items:center}
+/* 議事録貼り付け折りたたみ（タスク内） */
+details.paste-fold{margin-top:4px}
+details.paste-fold > summary{list-style:none;cursor:pointer;font-size:.8rem;font-weight:700;color:var(--blue-mid);
+  padding:8px 14px;background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:12px;display:inline-flex;align-items:center;gap:6px;user-select:none}
+details.paste-fold > summary::-webkit-details-marker{display:none}
+details.paste-fold > summary::before{content:"＋";font-weight:800}
+details.paste-fold[open] > summary::before{content:"−"}
+/* 役員からの指摘・依頼（強調・目立たせる） */
+.exec-req-block{background:rgba(240,201,105,.15);border:1.5px solid #f0c869;border-radius:14px;padding:15px;margin-top:14px}
+.exec-block-head.req{color:#ffe0a3}
+.req-badge{background:#f0ab00;color:#3a2c00;font-size:.62rem;font-weight:800;padding:2px 9px;border-radius:20px;margin-left:8px}
+.exec-req-list{list-style:none;margin-top:10px}
+.exec-req-list li{background:#fff;border-radius:12px;padding:13px 15px;margin-bottom:9px;border-left:5px solid #f0ab00;box-shadow:0 3px 12px rgba(240,171,0,.22)}
+.exec-req-list .n-body{font-size:.92rem;font-weight:600;line-height:1.7;white-space:pre-wrap;color:var(--ink)}
+.exec-req-list .n-meta{font-size:.68rem;color:var(--muted);margin-top:7px;display:flex;justify-content:space-between}
+.exec-req-list .n-del{cursor:pointer;color:var(--muted)}
+.req-btn{background:linear-gradient(120deg,#f0ab00,#e0863f)!important;box-shadow:0 4px 14px rgba(224,134,63,.4)!important}
+.exec-form textarea{min-height:60px;resize:vertical}
+.exec-form .row2{display:flex;gap:8px;justify-content:flex-end}
+.exec-add-btn{background:#f0c869;color:var(--navy-deep);border:none;border-radius:20px;padding:7px 16px;
+  font-weight:800;font-size:.8rem;cursor:pointer}
+.exec-viewonly{font-size:.72rem;opacity:.7;margin-top:12px}
+.exec-block{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:14px;margin-top:14px}
+.exec-block-head{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;font-weight:800;letter-spacing:.02em;margin-bottom:4px}
+.form-row{display:flex;gap:8px}
+.form-row .w-unit{max-width:120px}
+/* KPIカード */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+@media(max-width:820px){.kpi-grid{grid-template-columns:1fr}}
+.kpi{background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:20px;position:relative;
+  box-shadow:0 6px 20px rgba(38,64,95,.07);display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+.kpi.done-kpi{border-color:#bfe3bd;background:linear-gradient(180deg,#f6fbf5,#fff)}
+.kpi-main{min-width:0}
+.kpi-label{font-size:.82rem;font-weight:800;color:var(--blue-mid);letter-spacing:.02em}
+.kpi-label .dir{font-size:.6rem;color:var(--muted);margin-left:6px;font-weight:700}
+.kpi-nums{display:flex;align-items:baseline;gap:8px;margin-top:6px;flex-wrap:wrap}
+.kpi-nums .cur{font-size:2.9rem;font-weight:800;color:var(--navy);line-height:.95;letter-spacing:-.02em}
+.kpi.done-kpi .kpi-nums .cur{color:var(--ok)}
+.kpi-nums .cur .u{font-size:1.1rem;font-weight:700;margin-left:2px}
+.kpi-nums .tgt{font-size:.92rem;font-weight:700;color:var(--muted)}
+.kpi-nums .tgt b{color:var(--pink-deep);font-weight:800}
+.kpi-remain{font-size:.74rem;font-weight:700;color:var(--blue-mid);margin-top:6px}
+.kpi-remain.reached{color:var(--ok)}
+.kpi-bar{height:12px;background:#eef2f7;border-radius:20px;overflow:hidden;margin-top:11px}
+.kpi-bar > i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,var(--blue),#f0c869);transition:width .7s cubic-bezier(.2,.8,.2,1)}
+.kpi-bar.done > i{background:linear-gradient(90deg,#8CC152,var(--ok))}
+.kpi-title{font-size:.86rem;font-weight:700;color:var(--ink);margin-top:12px;line-height:1.5}
+.kpi-body{font-size:.76rem;color:var(--muted);margin-top:4px;white-space:pre-wrap;line-height:1.6}
+/* ドーナツ達成度リング */
+.kpi-ring{width:104px;height:104px;flex:0 0 auto;position:relative}
+.kpi-ring svg{transform:rotate(-90deg)}
+.kpi-ring .rbg{fill:none;stroke:#eef2f7;stroke-width:5}
+.kpi-ring .rfg{fill:none;stroke:var(--blue-mid);stroke-width:5;stroke-linecap:round;transition:stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1)}
+.kpi-ring.done .rfg{stroke:var(--ok)}
+.kpi-ring .rlabel{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.kpi-ring .rpct{font-size:1.35rem;font-weight:800;color:var(--navy);line-height:1}
+.kpi-ring.done .rpct{color:var(--ok)}
+.kpi-ring .rsub{font-size:.58rem;font-weight:700;color:var(--muted);margin-top:1px}
+.kpi-actions{grid-column:1/-1;display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:12px}
+.kpi-actions button{font-size:.68rem;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:14px;padding:4px 12px;cursor:pointer}
+.kpi-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
+.kpi-actions .upd{border-color:var(--pink-line);color:var(--pink-deep);font-weight:700}
+.kpi-noval{grid-column:1/-1;font-size:.78rem;color:var(--muted);margin-top:4px}
+/* KPIの数字をその場で直接クリック編集 */
+.kpi .ed{outline:none;cursor:text;border-radius:6px;transition:.12s}
+.kpi .ed:focus{background:#fff;box-shadow:0 0 0 2px var(--blue);padding:0 4px;margin:0 -2px}
+.kpi .cur.ed,.kpi .tgt b.ed{display:inline-block;min-width:.7em;border-bottom:2px dashed var(--blue-line)}
+.kpi .cur.ed:focus,.kpi .tgt b.ed:focus{border-bottom-color:transparent}
+.kpi .cur.ed:empty:before,.kpi .tgt b.ed:empty:before,.kpi-label .ed:empty:before,.kpi-title.ed:empty:before{content:attr(data-ph);color:#b9c4d1;font-weight:500}
+.kpi-label .ed{border-bottom:1px dashed transparent}
+.kpi-label .ed:hover{border-bottom-color:var(--blue-line)}
+.kpi-title.ed{border-radius:8px}
+.kpi-title.ed:hover{background:#f6f9fc}
+.kpi-edit-hint{font-size:.74rem;color:var(--blue-mid);background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:10px;padding:8px 12px;margin-top:8px}
+/* ヘッダーの目標サマリー */
+.goal-summary{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.gs-chip{background:rgba(255,255,255,.16);border-radius:12px;padding:8px 13px;min-width:150px;flex:1 1 auto;max-width:260px}
+.gs-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.72rem;font-weight:700;color:#fff}
+.gs-top .gv{font-size:.82rem}
+.gs-top .gv b{font-size:1rem}
+.gs-bar{height:6px;background:rgba(255,255,255,.25);border-radius:10px;margin-top:6px;overflow:hidden}
+.gs-bar>i{display:block;height:100%;background:#f0c869;border-radius:10px;transition:width .6s}
+.gs-bar.done>i{background:#8CC152}
+.gs-pct{font-size:.64rem;color:rgba(255,255,255,.85);font-weight:700;margin-top:3px;text-align:right}
+/* 役員コメント */
+.exec-note-form textarea{width:100%;border:none;border-radius:10px;padding:11px 13px;font-family:inherit;font-size:.88rem;color:var(--ink);min-height:56px;resize:vertical;margin-bottom:8px}
+.exec-note-list{list-style:none;margin-top:6px}
+.exec-note-list li{background:#fff;color:var(--ink);border-radius:11px;padding:11px 13px;margin-bottom:8px;border-left:4px solid #f0c869}
+.exec-note-list .n-body{font-size:.87rem;line-height:1.65;white-space:pre-wrap}
+.exec-note-list .n-meta{font-size:.68rem;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between;align-items:center}
+.exec-note-list .n-del{cursor:pointer;color:var(--muted)}
+/* 折りたたみ記録 */
+details.rec{background:#fff;border-radius:16px;margin-top:14px;box-shadow:var(--shadow);overflow:hidden}
+details.rec > summary{list-style:none;cursor:pointer;padding:16px 18px;font-size:.98rem;font-weight:700;color:var(--navy);
+  display:flex;align-items:center;gap:8px;user-select:none}
+details.rec > summary::-webkit-details-marker{display:none}
+details.rec > summary::before{content:"▸";color:var(--blue-mid);font-size:.9rem;transition:transform .2s}
+details.rec[open] > summary::before{transform:rotate(90deg)}
+details.rec > summary:hover{background:var(--blue-soft)}
+details.rec .rec-cnt{font-size:.7rem;font-weight:700;color:var(--blue-mid);background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:20px;padding:1px 9px;margin-left:2px}
+details.rec .rec-body{padding:0 18px 18px}
+
+/* ---------- 課題トラッカー ---------- */
+.issue-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:720px){.issue-cols{grid-template-columns:1fr}}
+.issue-col{border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+.issue-col.active{border-color:#f0ab00}
+.issue-col.resolved{border-color:var(--ok)}
+.issue-colhead{padding:10px 14px;font-weight:800;font-size:.88rem;display:flex;justify-content:space-between;align-items:center}
+.issue-col.active .issue-colhead{background:#fff6e6;color:#b8862d}
+.issue-col.resolved .issue-colhead{background:#eef8ee;color:#3d7a3a}
+.issue-list{padding:8px;min-height:50px}
+.issue-card{background:#fff;border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:7px}
+.issue-card .i-title{font-size:.9rem;font-weight:700;word-break:break-word}
+.issue-card .i-detail{font-size:.78rem;color:var(--muted);margin-top:4px;white-space:pre-wrap}
+.issue-card .i-badge{font-size:.64rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-right:6px}
+.i-badge.open{background:#fde7e7;color:#c0564a}
+.i-badge.in_progress{background:#fff2d6;color:#b8862d}
+.i-res{margin-top:8px;background:#eef8ee;border-left:3px solid var(--ok);border-radius:0 8px 8px 0;padding:7px 10px;font-size:.78rem;color:#3d7a3a;white-space:pre-wrap}
+.i-res .lbl{font-weight:800;font-size:.68rem;display:block;margin-bottom:2px}
+.i-meta{font-size:.68rem;color:var(--muted);margin-top:6px;display:flex;gap:10px;flex-wrap:wrap}
+.i-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.i-actions button{font-size:.68rem;border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:14px;padding:3px 10px;cursor:pointer}
+.i-actions button:hover{border-color:var(--blue-mid);color:var(--blue-mid)}
+.i-actions .res:hover{border-color:var(--ok);color:var(--ok)}
+.i-actions .del:hover{border-color:var(--pink-deep);color:var(--pink-deep)}
+
+/* ---------- 成果物ログ ---------- */
+.deliv-list{list-style:none}
+.deliv-item{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:11px 13px;margin-bottom:7px}
+.deliv-item .d-date{font-size:.72rem;color:var(--muted);white-space:nowrap;padding-top:2px;min-width:74px}
+.deliv-item .d-main{flex:1;min-width:0}
+.deliv-item .d-t{font-size:.9rem;font-weight:700}
+.deliv-item .d-t a{color:var(--blue-mid);text-decoration:none}
+.deliv-item .d-t a:hover{text-decoration:underline}
+.deliv-item .d-cat{font-size:.64rem;font-weight:700;background:var(--purple-soft);color:var(--purple);padding:2px 9px;border-radius:20px;margin-left:8px}
+.deliv-item .d-sum{font-size:.78rem;color:var(--muted);margin-top:3px}
+.deliv-item .d-del{color:var(--muted);cursor:pointer;font-size:.9rem}
+.subform{background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:12px;padding:12px;margin-top:10px;display:none}
+.subform.on{display:block}
+.subform input,.subform textarea,.subform select{width:100%;border:1.5px solid var(--blue-line);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:.85rem;margin-bottom:8px}
+.subform .row2{display:flex;gap:8px;justify-content:flex-end}
+.mini-add{border:1px dashed var(--blue-line);background:#fff;color:var(--blue-mid);border-radius:12px;padding:8px 16px;font-weight:700;font-size:.82rem;cursor:pointer}
+
+/* diagnostics */
+.diag{font-size:.8rem;line-height:1.8}
+.diag div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:4px 0}
+.diag .g{color:var(--ok);font-weight:700}.diag .r{color:var(--pink-deep);font-weight:700}
+
+.demo-banner{background:#fff4d6;border:1px solid #f0c869;color:#8a6d1f;border-radius:12px;padding:9px 14px;font-size:.78rem;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.demo-banner b{color:#6f5716}.demo-banner button{border:1px solid #d9b24a;background:#fff;color:#8a6d1f;border-radius:20px;padding:4px 12px;font-size:.74rem;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- ===== ログインゲート（許可アドレスのみ） ===== -->
+<div id="authGate" class="authgate hide">
+  <div class="authcard">
+    <h2>ナーチャリング共有ボード</h2>
+    <div id="gateBoard" style="font-weight:800;color:#26405f;font-size:.92rem;margin-bottom:10px"></div>
+    <p class="authlead">許可されたメールアドレスの方のみご利用いただけます。<br>ご登録のメールアドレスをご入力ください。<br><span class="hint">一度ログインすると、この端末では次回から自動でログインされます。</span></p>
+    <div id="authStep1">
+      <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com"
+        onkeydown="if(event.key==='Enter')sendMagic()">
+      <button class="btn authbtn" id="authSendBtn" onclick="sendMagic()">ログイン用リンクを送信</button>
+    </div>
+    <div id="authStep2" style="display:none">
+      <p class="authlead"><b id="sentTo"></b> 宛に<br><b>ログイン用リンク</b>を送信しました。</p>
+      <p class="authlead">メールを開き、記載のリンクをタップするとログインできます。<br><span class="hint">同じブラウザで開くと確実です。届かない場合は迷惑メールフォルダもご確認ください。</span></p>
+      <button class="btn ghost" onclick="resetAuth()">戻る</button>
+    </div>
+    <div id="authMsg" class="authmsg"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="demo-banner"><span><b>SHElikes用モックアップ</b>｜サンプルの見本です。数字はカードの点線をクリックで直接編集できます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
+
+  <!-- 管理者・役員：ボード横断タブ（複数ボードにアクセス権がある人のみ表示） -->
+  <div class="board-tabs" id="boardTabs"></div>
+
+  <!-- ===== HEADER ===== -->
+  <header>
+    <div class="h-top">
+      <div>
+        <div class="h-title"><span id="boardTitle">ナーチャリング共有ボード</span>
+          <span class="edit" id="editNameBtn" onclick="openSettings(false)" style="display:none">名称を編集</span></div>
+        <div class="h-sub">株式会社Merone ／ <span id="clientLabelSub">クライアント</span>　タスク・目標・進捗を相互に共有</div>
+      </div>
+      <div class="who">表示中：<b id="whoName">－</b> <button onclick="switchRole()">切替</button></div>
+    </div>
+    <div class="progress" title="タスクの完了率"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
+    <div class="goal-summary" id="goalSummary"></div>
+  </header>
+
+  <!-- ===== 1. タスク｜やるべきこと（議事録貼り付けで自動仕分け） ===== -->
+  <div class="section">
+    <h2>タスク｜やるべきこと <span class="tag">チェックで完了</span></h2>
+    <div class="desc">「次に何をするか」がひと目でわかります。議事録・メモを貼り付ければ、お互いのタスクへ自動で振り分けられます。</div>
+    <details class="paste-fold">
+      <summary>議事録・メモを貼り付けて自動仕分け</summary>
+      <div style="padding:12px 0 0">
+        <textarea id="pasteBox" class="paste-box" placeholder="例）
+・株式会社Merone → LT1の配信文を金曜までに送る
+・◯◯様はリッチメニューの画像を用意
+決定：初回配信は夜21時に固定"></textarea>
+        <div class="paste-actions">
+          <button class="btn" onclick="parseAndPreview()">仕分け</button>
+          <button class="btn ghost" onclick="document.getElementById('pasteBox').value=''">クリア</button>
+        </div>
+      </div>
+    </details>
+    <div class="cols" style="margin-top:14px">
+      <div class="col kumiko">
+        <div class="col-head"><span>株式会社Merone<span class="mine-badge" id="mineK" style="display:none">あなた</span></span><span class="cnt" id="cntK">0</span></div>
+        <ul class="tasklist" id="listK"></ul>
+        <div class="addrow">
+          <input id="addK" placeholder="株式会社Meroneのタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('kumiko')">
+          <button onclick="quickAdd('kumiko')">＋</button>
+        </div>
+      </div>
+      <div class="col client">
+        <div class="col-head"><span><span class="clientLabel">クライアント</span><span class="mine-badge" id="mineC" style="display:none">あなた</span></span><span class="cnt" id="cntC">0</span></div>
+        <ul class="tasklist" id="listC"></ul>
+        <div class="addrow">
+          <input id="addC" placeholder="クライアントのタスクを追加…" onkeydown="if(event.key==='Enter')quickAdd('client')">
+          <button onclick="quickAdd('client')">＋</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 2. 目指すべき目標（KPI） ===== -->
+  <div class="section goal-section">
+    <h2>目指すべき目標 <span class="tag">今追う数値（目標と現在値）</span>
+      <button class="mini-add" id="dirAddBtn" onclick="toggleDirForm()" style="margin-left:auto">＋ 目標を追加</button></h2>
+    <div class="desc">お互いで話し合って決めた目標を入力します（成約率・キャンセル率・件数など、いくつでも）。</div>
+    <div class="kpi-edit-hint">数字（現在値・目標値）はカード上の<b>点線の数字をクリックして直接入力・変更</b>できます。達成度は自動で計算されます。くみこ・クライアントのどちらも編集できます。</div>
+    <div class="subform" id="dirForm">
+      <input id="dirTitle" placeholder="ねらい・見出し（例：初回面談からの成約率を引き上げる）">
+      <div class="form-row">
+        <input id="dirMetricLabel" placeholder="指標名（例：成約率）">
+        <input id="dirUnit" class="w-unit" placeholder="単位（例：%・件）">
+      </div>
+      <div class="form-row">
+        <input id="dirTarget" placeholder="目標値（例：20）">
+        <input id="dirCurrent" placeholder="現在値（例：16）">
+      </div>
+      <select id="dirGoalDir">
+        <option value="up">高い方が良い指標（例：成約率・件数）</option>
+        <option value="down">低い方が良い指標（例：キャンセル率・離脱率）</option>
+      </select>
+      <textarea id="dirBody" placeholder="背景・意図（任意）"></textarea>
+      <div class="row2">
+        <button class="btn ghost" onclick="toggleDirForm()">キャンセル</button>
+        <button class="btn" onclick="addDirective()">登録</button>
+      </div>
+    </div>
+    <div class="kpi-grid" id="dirList"></div>
+    <div class="empty-note" id="dirEmpty">まだ目標がありません。「＋ 目標を追加」から、話し合って決めた指標を入力してください。</div>
+  </div>
+
+  <!-- ===== 3. 相互メモ欄（今の作業・進捗） ===== -->
+  <div class="section">
+    <h2>相互メモ <span class="tag">今の作業・進捗をリアルタイム共有</span></h2>
+    <div class="desc">「今どんな作業をしているか」「どのくらい進んでいるか」を書いておくと、相手にリアルタイムで共有されます（自動保存）。困っている点もここに書けます。</div>
+    <div class="stuck-grid">
+      <div class="stuck kumiko">
+        <label>株式会社Merone ｜ 今の作業・進捗</label>
+        <textarea id="stuckK" oninput="stuckDirty('kumiko')" placeholder="例）LT1配信文を作成中。金曜午前に共有予定（進捗7割）"></textarea>
+        <div class="saved" id="savedK"></div>
+      </div>
+      <div class="stuck client">
+        <label><span class="clientLabel">クライアント</span> ｜ 今の作業・進捗</label>
+        <textarea id="stuckC" oninput="stuckDirty('client')" placeholder="例）リッチメニュー画像を確認中。明日までに戻します"></textarea>
+        <div class="saved" id="savedC"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 4. 成果物ログ（常時表示） ===== -->
+  <div class="section">
+    <h2>成果物ログ <span class="tag">弊社提出物の記録</span><span class="rec-cnt" id="delivCnt" style="margin-left:8px"></span></h2>
+    <div class="desc">提出したレポート・バナー・LP・配信文などを蓄積します。都度ファイルを探さずに、ここから過去の提出物を追えます。</div>
+    <button class="mini-add" onclick="toggleDelivForm()">＋ 成果物を追加</button>
+    <div class="subform" id="delivForm">
+      <input id="delivTitle" placeholder="タイトル（例：7月勉強会 募集バナー 3種）">
+      <select id="delivCat">
+        <option value="">種別を選択</option>
+        <option>レポート</option><option>バナー</option><option>LP</option>
+        <option>配信文</option><option>資料</option><option>議事録</option><option>その他</option>
+      </select>
+      <input id="delivUrl" placeholder="リンク（Google Drive / Docs 等のURL・任意）">
+      <textarea id="delivSummary" placeholder="概要・補足（任意）"></textarea>
+      <input id="delivDate" type="date">
+      <div class="row2">
+        <button class="btn ghost" onclick="toggleDelivForm()">キャンセル</button>
+        <button class="btn" onclick="addDeliverable()">登録</button>
+      </div>
+    </div>
+    <ul class="deliv-list" id="delivList" style="margin-top:12px;max-height:440px;overflow:auto"></ul>
+    <div class="empty-note" id="delivEmpty">まだ成果物の記録はありません。</div>
+  </div>
+
+  <!-- ===== 5. 議題ログ（折りたたみ） ===== -->
+  <details class="rec">
+    <summary>議題ログ（協議・決定事項）<span class="rec-cnt" id="topicCnt"></span></summary>
+    <div class="rec-body">
+      <ul class="topic-log" id="topicLog"></ul>
+      <div class="empty-note" id="topicEmpty">まだ議題ログはありません。</div>
+    </div>
+  </details>
+
+  <!-- ===== 6. 役員から（最下部） ===== -->
+  <div class="exec-section">
+    <div class="exec-head"><h2><span class="exec-badge">経営</span>経営から</h2></div>
+    <div class="exec-desc">株式会社Merone（経営・役員）からのメッセージです。担当者は必ずここを確認してください。</div>
+
+    <!-- 指摘・依頼事項（特に重要・強調） -->
+    <div class="exec-req-block">
+      <div class="exec-block-head req"><span>経営からの指摘・依頼事項</span><span class="req-badge">要対応</span></div>
+      <div class="exec-note-form" id="execReqForm" style="display:none">
+        <textarea id="execReqBody" placeholder="例）面談後フォローの精度を最優先に。今週中に翌日連絡を仕組み化してほしい。"></textarea>
+        <div class="row2"><button class="btn req-btn" onclick="addExecNote('request')">投稿</button></div>
+      </div>
+      <ul class="exec-req-list" id="execReqList"></ul>
+      <div class="exec-empty" id="execReqEmpty">現在、指摘・依頼事項はありません。</div>
+    </div>
+
+    <!-- 一言 -->
+    <div class="exec-block">
+      <div class="exec-block-head"><span>経営からの一言</span></div>
+      <div class="exec-note-form" id="execNoteForm" style="display:none">
+        <textarea id="execNoteBody" placeholder="例）進捗ありがとうございます。この調子でお願いします。"></textarea>
+        <div class="row2"><button class="btn" onclick="addExecNote('note')">投稿</button></div>
+      </div>
+      <ul class="exec-note-list" id="execNoteList"></ul>
+      <div class="exec-empty" id="execNoteEmpty">まだ一言はありません。</div>
+    </div>
+  </div>
+
+
+  <!-- ===== status ===== -->
+  <div class="statusbar">
+    <span class="dot" id="connDot"></span><span id="connTxt">接続確認中…</span>
+    <button class="linkbtn" onclick="loadAll(true)">↻ 今すぐ更新</button>
+    <button class="linkbtn" onclick="runDiag()">接続診断</button>
+    <button class="linkbtn" onclick="downloadBackup()">データを保存</button>
+    <span id="lastSync"></span>
+    <span id="authUser"></span>
+    <button class="logoutbtn" onclick="logout()">ログアウト</button>
+  </div>
+</div>
+
+<!-- ===== settings modal (ボード名・クライアント名・役割) ===== -->
+<div class="overlay" id="setOverlay">
+  <div class="modal">
+    <h3>ボードの設定</h3>
+    <div class="desc" id="setHint">このボードの名称と、相手先（クライアント）の表示名をご入力ください。後からいつでも変更できます。</div>
+    <div class="setfield">
+      <label>クライアントの表示名 <span class="req">必須</span></label>
+      <input id="setClient" placeholder="例）○○株式会社 / ○○様" oninput="document.getElementById('roleClientLabel').textContent=this.value.trim()||'クライアント'">
+      <div class="fhint">ボードのクライアント側の表示名に使用されます</div>
+    </div>
+    <div class="setfield">
+      <label>ボードの名称</label>
+      <input id="setTitle" placeholder="例）○○様 ナーチャリング進行ボード">
+      <div class="fhint">未入力の場合は「ナーチャリング共有ボード」になります</div>
+    </div>
+    <div class="setfield">
+      <label>ご利用者はどちらですか</label>
+      <div class="rolepick">
+        <label class="rolebtn"><input type="radio" name="setRole" value="kumiko"> 株式会社Merone（弊社・役員含む）</label>
+        <label class="rolebtn"><input type="radio" name="setRole" value="client"> <span id="roleClientLabel">クライアント</span></label>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeEl('setOverlay')">キャンセル</button>
+      <button class="btn" onclick="saveSettings()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== preview modal ===== -->
+<div class="overlay" id="pvOverlay">
+  <div class="modal">
+    <h3>仕分けプレビュー</h3>
+    <div class="desc">担当（株式会社Merone / クライアント）をご確認のうえ、不要な行は × で削除してください。「議題」はログへ、「タスク」は一覧へ登録されます。</div>
+    <div id="pvList"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closePreview()">キャンセル</button>
+      <button class="btn" onclick="commitPreview()">ボードに登録</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== diagnostics modal ===== -->
+<div class="overlay" id="diagOverlay">
+  <div class="modal">
+    <h3>接続診断</h3>
+    <div class="desc">Supabaseとの接続・各テーブルの存在をチェックします。赤があったら schema.sql を貼り直してください。</div>
+    <div class="diag" id="diagBody">確認中…</div>
+    <div class="modal-actions"><button class="btn" onclick="closeEl('diagOverlay')">閉じる</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// 初期化
+// ============================================================
+let BID = SUPABASE_CONFIG.boardId || 'client1';
+let currentUserEmail = '';
+let currentUserRoleHint = '';   // owner=くみこ / kumiko=Merone(清水等) / client=先方
+let ADMIN_BOARD_NAMES = {};
+function isOwner(){ return currentUserRoleHint==='owner'; }
+// ボード名（クライアント名）は公開ソースに載せない。ログイン後にDB(nurture_meta)から取得して表示。
+const BOARD_NAMES = {};
+(function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent='';
+  try{ const em=document.getElementById('authEmail'), last=localStorage.getItem('nurture_last_email'); if(em&&last){ em.value=last; } }catch(e){} })();
+let sb = makeSB();
+let ROLE = localStorage.getItem('nurture_role'); // 'kumiko' | 'client'
+let META = { title:'ナーチャリング共有ボード', client_label:'クライアント' };
+let TASKS = [], TOPICS = [], DIRECTIVES = [], ISSUES = [], DELIVS = [], EXEC_NOTES = [];
+let pvData = [];
+function isExec(){ return ROLE==='executive'; }
+// 目標・役員メッセージの編集可否。少人数の信頼ベース運用のため、ログインメンバーは全員編集可
+// （代表がほぼ一人で回す会社でも自然に使えるようにする）
+function canEditDirectives(){ return true; }
+
+// ============================================================
+// 役割（自分はどっち？）
+// ============================================================
+function ensureRole(){
+  paintRole();
+  // 初回：役割が未設定、またはクライアント名が未入力なら設定モーダルを自動で開く
+  const needsSetup = (ROLE!=='kumiko' && ROLE!=='client') || !META.client_label || META.client_label==='クライアント';
+  if (needsSetup && isOwner()) openSettings(true);
+}
+function switchRole(){
+  ROLE = (ROLE === 'kumiko') ? 'client' : 'kumiko';
+  localStorage.setItem('nurture_role', ROLE);
+  paintRole();
+}
+function paintRole(){
+  const name = (ROLE==='kumiko'||ROLE==='executive') ? '株式会社Merone' : META.client_label;
+  document.getElementById('whoName').textContent = name;
+  const enb=document.getElementById('editNameBtn'); if(enb) enb.style.display = isOwner() ? '' : 'none';
+  document.getElementById('mineK').style.display = ROLE==='kumiko' ? '' : 'none';
+  document.getElementById('mineC').style.display = ROLE==='client' ? '' : 'none';
+  // 経営セクションの編集権限（役員・くみこのみ）
+  const canDir = canEditDirectives();
+  const addBtn = document.getElementById('dirAddBtn');
+  if(addBtn) addBtn.style.display = canDir ? '' : 'none';
+  const nf = document.getElementById('execNoteForm');
+  if(nf) nf.style.display = canDir ? 'block' : 'none';
+  const rf = document.getElementById('execReqForm');
+  if(rf) rf.style.display = canDir ? 'block' : 'none';
+  if(!canDir){ const f=document.getElementById('dirForm'); if(f) f.classList.remove('on'); }
+  renderDirectives(); renderExecNotes();
+}
+
+// ============================================================
+// メタ（タイトル・クライアント名）
+// ============================================================
+function applyMeta(){
+  document.getElementById('boardTitle').textContent = META.title || 'ナーチャリング共有ボード';
+  document.getElementById('clientLabelSub').textContent = META.client_label || 'クライアント';
+  document.querySelectorAll('.clientLabel').forEach(e=>e.textContent = META.client_label || 'クライアント');
+  document.title = META.title || 'ナーチャリング共有ボード';
+  paintRole();
+}
+function openSettings(first){
+  if(!isOwner()){ toast('ボード名・クライアント名の編集は管理者（株式会社Merone代表）のみ可能です'); return; }
+  // 既定値（デフォルトのままなら空欄にして入力を促す）
+  document.getElementById('setTitle').value  = (META.title && META.title!=='ナーチャリング共有ボード') ? META.title : '';
+  document.getElementById('setClient').value = (META.client_label && META.client_label!=='クライアント') ? META.client_label : '';
+  document.getElementById('roleClientLabel').textContent = document.getElementById('setClient').value.trim() || 'クライアント';
+  // 役割ラジオの初期選択
+  document.querySelectorAll('input[name="setRole"]').forEach(r=>{ r.checked = (r.value===ROLE); });
+  document.getElementById('setHint').style.display = first ? 'block' : 'none';
+  document.getElementById('setOverlay').classList.add('on');
+  setTimeout(()=>document.getElementById('setClient').focus(),50);
+}
+async function saveSettings(){
+  if(!isOwner()){ toast('編集権限がありません'); closeEl('setOverlay'); return; }
+  const c = document.getElementById('setClient').value.trim();
+  if(!c){ toast('クライアントの表示名を入力してください'); document.getElementById('setClient').focus(); return; }
+  const t = document.getElementById('setTitle').value.trim();
+  META.client_label = c;
+  META.title = t || 'ナーチャリング共有ボード';
+  const r = document.querySelector('input[name="setRole"]:checked');
+  if(r){ ROLE = r.value; localStorage.setItem('nurture_role', ROLE); }
+  applyMeta();
+  if(sb){
+    await sb.from('nurture_meta').upsert({ board_id:BID, title:META.title, client_label:META.client_label, updated_at:new Date().toISOString() });
+  }
+  closeEl('setOverlay');
+  renderTopics();
+  toast('保存しました');
+}
+
+// ============================================================
+// データ読込
+// ============================================================
+async function loadAll(manual){
+  if(!sb){ setConn(false,'未接続：supabase_config.js を確認'); return; }
+  try{
+    const [m,t,tp,st,dir,iss,dlv,en] = await Promise.all([
+      sb.from('nurture_meta').select('*').eq('board_id',BID).maybeSingle(),
+      sb.from('nurture_tasks').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
+      sb.from('nurture_topics').select('*').eq('board_id',BID).order('created_at',{ascending:false}),
+      sb.from('nurture_stuck').select('*').eq('board_id',BID),
+      sb.from('nurture_directives').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:true}),
+      sb.from('nurture_issues').select('*').eq('board_id',BID).order('sort_order',{ascending:true}).order('created_at',{ascending:false}),
+      sb.from('nurture_deliverables').select('*').eq('board_id',BID).order('delivered_on',{ascending:false}).order('created_at',{ascending:false}),
+      sb.from('nurture_exec_notes').select('*').eq('board_id',BID).order('created_at',{ascending:false})
+    ]);
+    if(m.data){ META.title=m.data.title||META.title; META.client_label=m.data.client_label||META.client_label; }
+    applyMeta();
+    TASKS = t.data||[]; TOPICS = tp.data||[];
+    DIRECTIVES = dir.data||[]; ISSUES = iss.data||[]; DELIVS = dlv.data||[]; EXEC_NOTES = en.data||[];
+    renderTasks(); renderTopics(); renderDirectives(); renderIssues(); renderDeliverables(); renderExecNotes();
+    // stuck（自分が編集中の欄は上書きしない）
+    (st.data||[]).forEach(row=>{
+      const el = row.owner==='kumiko' ? document.getElementById('stuckK') : document.getElementById('stuckC');
+      if(el && document.activeElement!==el) el.value = row.content||'';
+    });
+    setConn(true,'接続OK');
+    const now=new Date();
+    document.getElementById('lastSync').textContent='最終更新 '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+    if(manual) toast('最新の状態にしました');
+  }catch(e){
+    console.error(e); setConn(false,'読込エラー：'+(e.message||e));
+  }
+}
+
+// ============================================================
+// タスク描画
+// ============================================================
+function renderTasks(){
+  const lk=document.getElementById('listK'), lc=document.getElementById('listC');
+  lk.innerHTML=''; lc.innerHTML='';
+  const k=TASKS.filter(t=>t.owner==='kumiko'), c=TASKS.filter(t=>t.owner==='client');
+  document.getElementById('cntK').textContent = k.filter(t=>t.status==='done').length+'/'+k.length;
+  document.getElementById('cntC').textContent = c.filter(t=>t.status==='done').length+'/'+c.length;
+  if(!k.length) lk.innerHTML='<div class="empty-note">まだタスクなし</div>';
+  if(!c.length) lc.innerHTML='<div class="empty-note">まだタスクなし</div>';
+  k.forEach(t=>lk.appendChild(taskEl(t)));
+  c.forEach(t=>lc.appendChild(taskEl(t)));
+  // progress
+  const done=TASKS.filter(t=>t.status==='done').length;
+  const pct = TASKS.length ? Math.round(done/TASKS.length*100) : 0;
+  document.getElementById('progBar').style.width=pct+'%';
+  document.getElementById('progTxt').textContent = pct+'%（'+done+'/'+TASKS.length+'）';
+}
+function taskEl(t){
+  const li=document.createElement('li');
+  li.className='task '+(t.status==='done'?'done':t.status==='doing'?'doing':'');
+  li.innerHTML =
+    '<div class="check" title="完了" onclick="toggleDone(\''+t.id+'\')">'+(t.status==='done'?'✓':t.status==='doing'?'…':'')+'</div>'+
+    '<div class="t-body">'+
+      '<div class="t-title" contenteditable="true" spellcheck="false" '+
+        'onblur="saveTitleInline(\''+t.id+'\',this)" onkeydown="taskEditKey(event)">'+esc(t.title)+'</div>'+
+      '<div class="t-memo" contenteditable="true" spellcheck="false" data-ph="＋補足・メモ" '+
+        'onblur="saveMemoInline(\''+t.id+'\',this)" onkeydown="taskEditKey(event)">'+esc(t.memo||'')+'</div>'+
+      '<div class="t-actions">'+
+        '<button onclick="toggleDoing(\''+t.id+'\')">'+(t.status==='doing'?'着手中を解除':'着手中にする')+'</button>'+
+        '<button onclick="moveOwner(\''+t.id+'\')">担当変更</button>'+
+        '<button class="del" onclick="delTask(\''+t.id+'\')">削除</button>'+
+      '</div>'+
+    '</div>';
+  return li;
+}
+// タイトル/メモをその場で保存（別窓なし）
+function taskEditKey(e){ if(e.key==='Enter' && !e.isComposing){ e.preventDefault(); e.target.blur(); } }
+function saveTitleInline(id,el){
+  const v=(el.textContent||'').trim();
+  const t=TASKS.find(x=>x.id===id); if(!t) return;
+  if(!v){ el.textContent=t.title; return; }
+  if(v===t.title) return;
+  patchTask(id,{title:v});
+}
+function saveMemoInline(id,el){
+  const v=(el.textContent||'').trim();
+  const t=TASKS.find(x=>x.id===id); if(!t) return;
+  if(v===(t.memo||'')) return;
+  patchTask(id,{memo:v});
+}
+function isEditing(){ const a=document.activeElement; return !!(a && a.getAttribute && a.getAttribute('contenteditable')==='true'); }
+
+// ============================================================
+// タスク操作
+// ============================================================
+async function quickAdd(owner){
+  const el=document.getElementById(owner==='kumiko'?'addK':'addC');
+  const v=el.value.trim(); if(!v) return; el.value='';
+  await addTask(v,owner);
+}
+async function addTask(title,owner,memo){
+  if(!sb) return;
+  const row={board_id:BID,title:title,owner:owner,status:'todo',memo:memo||'',sort_order:Date.now()};
+  const {data,error}=await sb.from('nurture_tasks').insert(row).select().single();
+  if(error){toast('追加エラー');return;}
+  TASKS.push(data); renderTasks();
+}
+async function toggleDone(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  const done = t.status!=='done';
+  await patchTask(id,{status:done?'done':'todo', done_at:done?new Date().toISOString():null});
+  if(done) toast('完了しました');
+}
+async function toggleDoing(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  await patchTask(id,{status:t.status==='doing'?'todo':'doing', done_at:null});
+}
+async function moveOwner(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  await patchTask(id,{owner:t.owner==='kumiko'?'client':'kumiko'});
+}
+async function editTitleTask(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  const v=prompt('タスクを編集',t.title); if(v===null)return;
+  if(!v.trim()) return;
+  await patchTask(id,{title:v.trim()});
+}
+async function editMemo(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  const v=prompt('つまずき・メモ（このタスク）',t.memo||''); if(v===null)return;
+  await patchTask(id,{memo:v.trim()});
+}
+async function delTask(id){
+  const t=TASKS.find(x=>x.id===id); if(!t)return;
+  if(!confirm('このタスクを削除しますか？\n「'+t.title+'」'))return;
+  const row=Object.assign({},t);
+  const {error}=await sb.from('nurture_tasks').delete().eq('id',id);
+  if(error){toast('削除エラー');return;}
+  TASKS=TASKS.filter(x=>x.id!==id); renderTasks();
+  showUndo('タスクを削除しました','nurture_tasks',row);
+}
+async function patchTask(id,patch){
+  if(!sb)return;
+  patch.updated_at=new Date().toISOString();
+  const {data,error}=await sb.from('nurture_tasks').update(patch).eq('id',id).select().single();
+  if(error){toast('更新エラー');return;}
+  const i=TASKS.findIndex(x=>x.id===id); if(i>=0)TASKS[i]=data; renderTasks();
+}
+
+// ============================================================
+// 議題ログ
+// ============================================================
+function renderTopics(){
+  const ul=document.getElementById('topicLog');
+  ul.innerHTML='';
+  document.getElementById('topicEmpty').style.display = TOPICS.length?'none':'block';
+  const tc=document.getElementById('topicCnt'); if(tc) tc.textContent = TOPICS.length?TOPICS.length:'';
+  TOPICS.forEach(tp=>{
+    const li=document.createElement('li');
+    const d=new Date(tp.created_at);
+    const who = tp.author==='kumiko'?'株式会社Merone':(META.client_label||'相手');
+    li.innerHTML='<div>'+esc(tp.content)+'</div>'+
+      '<div class="meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+' '+d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')+'</span>'+
+      '<span class="tdel" onclick="delTopic(\''+tp.id+'\')">削除</span></div>';
+    ul.appendChild(li);
+  });
+}
+async function addTopic(content){
+  if(!sb)return;
+  const {data,error}=await sb.from('nurture_topics').insert({board_id:BID,content:content,author:ROLE}).select().single();
+  if(error)return;
+  TOPICS.unshift(data);
+}
+async function delTopic(id){
+  const t=TOPICS.find(x=>x.id===id); if(!t)return;
+  if(!confirm('この議題ログを削除しますか？'))return;
+  const row=Object.assign({},t);
+  await sb.from('nurture_topics').delete().eq('id',id);
+  TOPICS=TOPICS.filter(x=>x.id!==id); renderTopics();
+  showUndo('議題ログを削除しました','nurture_topics',row);
+}
+
+// ============================================================
+// 共通ユーティリティ（新セクション用）
+// ============================================================
+async function patchRow(table,arr,id,patch,rerender){
+  if(!sb)return;
+  patch.updated_at=new Date().toISOString();
+  const {data,error}=await sb.from(table).update(patch).eq('id',id).select().single();
+  if(error){toast('更新エラー');return;}
+  const i=arr.findIndex(x=>x.id===id); if(i>=0)arr[i]=data; if(rerender)rerender();
+}
+function fmtDate(s){ if(!s)return''; const p=String(s).slice(0,10).split('-'); return p.length===3?(+p[1])+'/'+(+p[2]):esc(s); }
+function ownerLabel(o){ return (o==='kumiko'||o==='executive')?'株式会社Merone':o==='client'?(META.client_label||'クライアント'):esc(o); }
+
+// ============================================================
+// 経営：期待・注視指標（役員／くみこが編集、担当者は閲覧）
+// ============================================================
+function toggleDirForm(){ if(!canEditDirectives())return; document.getElementById('dirForm').classList.toggle('on'); }
+function numOr(v){ const n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; }
+// 目標の進捗を計算（方向対応）: {pct, done, hasProg}
+function kpiProgress(d){
+  const tgt=numOr(d.target_value), cur=numOr(d.current_value);
+  if(cur===null || tgt===null || tgt===0) return {pct:null,done:false,hasProg:false,cur,tgt};
+  const down=d.goal_dir==='down';
+  let pct, done;
+  if(down){ if(cur<=tgt){pct=100;done=true;} else {pct=Math.round(tgt/cur*100);done=false;} }
+  else    { pct=Math.round(cur/tgt*100); done=cur>=tgt; }
+  pct=Math.max(0,Math.min(100,pct));
+  return {pct,done,hasProg:true,cur,tgt,down};
+}
+function renderDirectives(){
+  const list=document.getElementById('dirList'); if(!list) return;
+  list.innerHTML='';
+  document.getElementById('dirEmpty').style.display = DIRECTIVES.length?'none':'block';
+  const canEdit=canEditDirectives();
+  const R=15.9155, C=2*Math.PI*R; // 円周
+  DIRECTIVES.forEach(d=>{
+    const el=document.createElement('div');
+    const p=kpiProgress(d);
+    const isDone = d.status==='achieved' || p.done;
+    el.className='kpi'+(isDone?' done-kpi':'');
+    const down=d.goal_dir==='down';
+    const ce=canEdit?'true':'false';
+    const uTxt=esc(d.unit||'');
+    const ed=(f,val,ph,cls)=>'<span class="'+cls+'" contenteditable="'+ce+'" data-id="'+d.id+'" data-f="'+f+'" data-ph="'+ph+'" onblur="saveKpiField(this)" onkeydown="taskEditKey(event)">'+val+'</span>';
+    let main='';
+    main+='<div class="kpi-label">'+ed('metric_label',esc(d.metric_label||''),'指標名を入力','ed')+(down?'<span class="dir">▼低いほど良い</span>':'')+'</div>';
+    main+='<div class="kpi-nums">'+
+      ed('current_value',(p.cur!==null?esc(d.current_value):''),'現在値','cur ed')+'<span class="u">'+uTxt+'</span>'+
+      '<span class="tgt">/ 目標 <b class="ed" contenteditable="'+ce+'" data-id="'+d.id+'" data-f="target_value" data-ph="目標" onblur="saveKpiField(this)" onkeydown="taskEditKey(event)">'+(p.tgt!==null?esc(d.target_value):'')+'</b>'+uTxt+'</span></div>';
+    if(p.hasProg){
+      const diff = down ? (p.cur - p.tgt) : (p.tgt - p.cur);
+      const remainHtml = p.done ? '<div class="kpi-remain reached">目標達成しています</div>'
+        : '<div class="kpi-remain">目標まで あと '+Math.abs(Math.round(diff*10)/10)+esc(d.unit||'')+'</div>';
+      main+=remainHtml+'<div class="kpi-bar'+(p.done?' done':'')+'"><i style="width:'+p.pct+'%"></i></div>';
+    }else if(canEdit){
+      main+='<div class="kpi-remain">現在値と目標値を入れると達成度が自動計算されます</div>';
+    }
+    main+='<div class="kpi-title ed" contenteditable="'+ce+'" data-id="'+d.id+'" data-f="title" data-ph="この目標のねらい・説明" onblur="saveKpiField(this)" onkeydown="taskEditKey(event)">'+esc(d.title||'')+'</div>';
+    if(d.body) main+='<div class="kpi-body">'+esc(d.body)+'</div>';
+
+    let ring='';
+    if(p.hasProg){
+      const off = C*(1-p.pct/100);
+      ring='<div class="kpi-ring'+(p.done?' done':'')+'"><svg viewBox="0 0 42 42" width="104" height="104">'+
+        '<circle class="rbg" cx="21" cy="21" r="'+R+'"></circle>'+
+        '<circle class="rfg" cx="21" cy="21" r="'+R+'" stroke-dasharray="'+C.toFixed(2)+'" stroke-dashoffset="'+off.toFixed(2)+'"></circle>'+
+        '</svg><div class="rlabel"><div class="rpct">'+p.pct+'%</div><div class="rsub">達成</div></div></div>';
+    }
+
+    let actions='';
+    if(canEdit){
+      actions='<div class="kpi-actions">'+
+        '<button onclick="toggleDirAchieved(\''+d.id+'\')">'+(d.status==='achieved'?'進行中に戻す':'達成にする')+'</button>'+
+        '<button onclick="editDirective(\''+d.id+'\')">単位・向きを編集</button>'+
+        '<button onclick="delDirective(\''+d.id+'\')">削除</button>'+
+      '</div>';
+    }
+    el.innerHTML='<div class="kpi-main">'+main+'</div>'+(ring||'<div></div>')+actions;
+    list.appendChild(el);
+  });
+  renderGoalSummary();
+}
+// ヘッダーの目標サマリー（タスクゲージと並べて目標も一目で）
+function renderGoalSummary(){
+  const gs=document.getElementById('goalSummary'); if(!gs) return;
+  const withProg=DIRECTIVES.filter(d=>kpiProgress(d).hasProg);
+  if(!withProg.length){ gs.innerHTML=''; return; }
+  gs.innerHTML=withProg.map(d=>{
+    const p=kpiProgress(d);
+    return '<div class="gs-chip"><div class="gs-top"><span>'+esc(d.metric_label||d.title)+'</span>'+
+      '<span class="gv"><b>'+esc(d.current_value)+'</b>'+esc(d.unit||'')+' / '+esc(d.target_value)+esc(d.unit||'')+'</span></div>'+
+      '<div class="gs-bar'+(p.done?' done':'')+'"><i style="width:'+p.pct+'%"></i></div>'+
+      '<div class="gs-pct">達成度 '+p.pct+'%'+(p.done?'（達成）':'')+'</div></div>';
+  }).join('');
+}
+async function addDirective(){
+  if(!sb||!canEditDirectives())return;
+  const g=id=>document.getElementById(id).value.trim();
+  const title=g('dirTitle');
+  if(!title){toast('見出しを入力してください');return;}
+  const row={board_id:BID,title,body:g('dirBody'),metric_label:g('dirMetricLabel'),
+    target_value:g('dirTarget'),current_value:g('dirCurrent'),unit:g('dirUnit'),
+    goal_dir:document.getElementById('dirGoalDir').value,
+    author:ROLE,status:'active',sort_order:Date.now()};
+  const {data,error}=await sb.from('nurture_directives').insert(row).select().single();
+  if(error){toast('登録エラー');return;}
+  DIRECTIVES.push(data);
+  ['dirTitle','dirBody','dirMetricLabel','dirTarget','dirCurrent','dirUnit'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('dirGoalDir').value='up';
+  document.getElementById('dirForm').classList.remove('on');
+  renderDirectives(); toast('登録しました');
+}
+// 目標カードの数字・見出しをその場で保存（くみこ・クライアント両方が編集可）
+function saveKpiField(el){
+  if(!canEditDirectives()) return;
+  const id=el.getAttribute('data-id'), f=el.getAttribute('data-f');
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d) return;
+  const v=(el.textContent||'').trim();
+  if(v===((d[f]==null?'':String(d[f])))) return;
+  const patch={}; patch[f]=v;
+  patchRow('nurture_directives',DIRECTIVES,id,patch,renderDirectives);
+  toast('保存しました');
+}
+async function updateKpiCurrent(id){
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
+  const v=prompt('現在値を入力してください'+(d.unit?'（単位：'+d.unit+'）':''),d.current_value||''); if(v===null)return;
+  await patchRow('nurture_directives',DIRECTIVES,id,{current_value:v.trim()},renderDirectives);
+  toast('現在値を更新しました');
+}
+async function editDirective(id){
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
+  const title=prompt('ねらい・見出し',d.title); if(title===null)return;
+  const label=prompt('指標名（例：成約率）',d.metric_label||''); if(label===null)return;
+  const target=prompt('目標値',d.target_value||''); if(target===null)return;
+  const current=prompt('現在値',d.current_value||''); if(current===null)return;
+  const unit=prompt('単位（例：%・件）',d.unit||''); if(unit===null)return;
+  const dir=prompt('この指標は「高い方が良い」なら up、「低い方が良い（キャンセル率など）」なら down と入力',d.goal_dir||'up'); if(dir===null)return;
+  const body=prompt('背景・意図（任意）',d.body||''); if(body===null)return;
+  await patchRow('nurture_directives',DIRECTIVES,id,{title:title.trim(),metric_label:label.trim(),target_value:target.trim(),current_value:current.trim(),unit:unit.trim(),goal_dir:(dir.trim()==='down'?'down':'up'),body:body.trim()},renderDirectives);
+}
+async function toggleDirAchieved(id){
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d||!canEditDirectives())return;
+  await patchRow('nurture_directives',DIRECTIVES,id,{status:d.status==='achieved'?'active':'achieved'},renderDirectives);
+}
+async function delDirective(id){
+  if(!canEditDirectives())return;
+  const d=DIRECTIVES.find(x=>x.id===id); if(!d)return;
+  if(!confirm('この目標を削除しますか？\n「'+d.title+'」'))return;
+  const row=Object.assign({},d);
+  await sb.from('nurture_directives').delete().eq('id',id);
+  DIRECTIVES=DIRECTIVES.filter(x=>x.id!==id); renderDirectives();
+  showUndo('目標を削除しました','nurture_directives',row);
+}
+
+// 役員コメント（一言＝note ／ 指摘・依頼＝request の2種類）
+function renderExecNotes(){
+  const canEdit=canEditDirectives();
+  const noteUl=document.getElementById('execNoteList');
+  const reqUl=document.getElementById('execReqList');
+  if(!noteUl && !reqUl) return;
+  const fill=(ul,emptyId,arr)=>{
+    if(!ul) return;
+    ul.innerHTML='';
+    const em=document.getElementById(emptyId); if(em) em.style.display = arr.length?'none':'block';
+    arr.forEach(n=>{
+      const li=document.createElement('li');
+      const d=new Date(n.created_at);
+      const who=(n.author==='executive'||n.author==='kumiko')?'株式会社Merone':ownerLabel(n.author);
+      li.innerHTML='<div class="n-body">'+esc(n.body)+'</div>'+
+        '<div class="n-meta"><span>'+who+'・'+(d.getMonth()+1)+'/'+d.getDate()+'</span>'+
+        (canEdit?'<span class="n-del" onclick="delExecNote(\''+n.id+'\')">削除</span>':'')+'</div>';
+      ul.appendChild(li);
+    });
+  };
+  fill(reqUl,'execReqEmpty', EXEC_NOTES.filter(n=>n.kind==='request'));
+  fill(noteUl,'execNoteEmpty', EXEC_NOTES.filter(n=>n.kind!=='request'));
+}
+async function addExecNote(kind){
+  if(!sb||!canEditDirectives())return;
+  kind = (kind==='request') ? 'request' : 'note';
+  const el=document.getElementById(kind==='request'?'execReqBody':'execNoteBody');
+  const body=el.value.trim(); if(!body){toast('内容を入力してください');return;}
+  const {data,error}=await sb.from('nurture_exec_notes').insert({board_id:BID,body,author:ROLE,kind}).select().single();
+  if(error){toast('投稿エラー');return;}
+  EXEC_NOTES.unshift(data); el.value='';
+  renderExecNotes(); toast('投稿しました');
+}
+async function delExecNote(id){
+  if(!canEditDirectives())return;
+  const n=EXEC_NOTES.find(x=>x.id===id); if(!n)return;
+  if(!confirm('このコメントを削除しますか？'))return;
+  const row=Object.assign({},n);
+  await sb.from('nurture_exec_notes').delete().eq('id',id);
+  EXEC_NOTES=EXEC_NOTES.filter(x=>x.id!==id); renderExecNotes();
+  showUndo('コメントを削除しました','nurture_exec_notes',row);
+}
+
+// ============================================================
+// 課題トラッカー（ボトルネック → 解決の軌跡）
+// ============================================================
+function toggleIssueForm(){ document.getElementById('issueForm').classList.toggle('on'); }
+function renderIssues(){
+  const openL=document.getElementById('issueOpenList'), resL=document.getElementById('issueResList');
+  if(!openL) return;
+  openL.innerHTML=''; resL.innerHTML='';
+  const open=ISSUES.filter(i=>i.status!=='resolved');
+  const res=ISSUES.filter(i=>i.status==='resolved');
+  document.getElementById('issueOpenCnt').textContent=open.length;
+  document.getElementById('issueResCnt').textContent=res.length;
+  if(!open.length) openL.innerHTML='<div class="empty-note">対応中の課題はありません</div>';
+  if(!res.length) resL.innerHTML='<div class="empty-note">解決済みはまだありません</div>';
+  open.forEach(i=>openL.appendChild(issueEl(i)));
+  res.forEach(i=>resL.appendChild(issueEl(i)));
+}
+function issueEl(i){
+  const el=document.createElement('div');
+  el.className='issue-card'+(i.status==='resolved'?' resolved':'');
+  let html='';
+  if(i.status!=='resolved') html+='<span class="i-badge '+(i.status==='in_progress'?'in_progress':'open')+'">'+(i.status==='in_progress'?'対応中':'未着手')+'</span>';
+  html+='<span class="i-title">'+esc(i.title)+'</span>';
+  if(i.detail) html+='<div class="i-detail">'+esc(i.detail)+'</div>';
+  if(i.status==='resolved' && i.resolution) html+='<div class="i-res"><span class="lbl">解決の内容</span>'+esc(i.resolution)+'</div>';
+  html+='<div class="i-meta"><span>発生 '+fmtDate(i.opened_on)+'</span>'+(i.resolved_on?'<span>解決 '+fmtDate(i.resolved_on)+'</span>':'')+(i.owner?'<span>担当 '+ownerLabel(i.owner)+'</span>':'')+'</div>';
+  html+='<div class="i-actions">';
+  if(i.status==='open') html+='<button onclick="setIssueStatus(\''+i.id+'\',\'in_progress\')">対応中にする</button>';
+  if(i.status!=='resolved') html+='<button class="res" onclick="resolveIssue(\''+i.id+'\')">解決にする</button>';
+  else html+='<button onclick="setIssueStatus(\''+i.id+'\',\'in_progress\')">対応中に戻す</button>';
+  html+='<button onclick="editIssue(\''+i.id+'\')">編集</button>';
+  html+='<button class="del" onclick="delIssue(\''+i.id+'\')">削除</button></div>';
+  el.innerHTML=html;
+  return el;
+}
+async function addIssue(){
+  if(!sb)return;
+  const title=document.getElementById('issueTitle').value.trim();
+  if(!title){toast('課題の見出しを入力してください');return;}
+  const detail=document.getElementById('issueDetail').value.trim();
+  const {data,error}=await sb.from('nurture_issues').insert({board_id:BID,title,detail,status:'open',owner:ROLE,sort_order:Date.now()}).select().single();
+  if(error){toast('登録エラー');return;}
+  ISSUES.unshift(data);
+  document.getElementById('issueTitle').value='';document.getElementById('issueDetail').value='';
+  document.getElementById('issueForm').classList.remove('on');
+  renderIssues(); toast('課題を登録しました');
+}
+async function setIssueStatus(id,status){
+  const patch={status}; if(status!=='resolved') patch.resolved_on=null;
+  await patchRow('nurture_issues',ISSUES,id,patch,renderIssues);
+}
+async function resolveIssue(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i)return;
+  const res=prompt('どのように解決しましたか？（解決の内容を記録します）',i.resolution||''); if(res===null)return;
+  const today=new Date().toISOString().slice(0,10);
+  await patchRow('nurture_issues',ISSUES,id,{status:'resolved',resolution:res.trim(),resolved_on:today},renderIssues);
+  toast('解決済みにしました');
+}
+async function editIssue(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i)return;
+  const title=prompt('課題の見出し',i.title); if(title===null)return;
+  const detail=prompt('詳細（任意）',i.detail||''); if(detail===null)return;
+  await patchRow('nurture_issues',ISSUES,id,{title:title.trim(),detail:detail.trim()},renderIssues);
+}
+async function delIssue(id){
+  const i=ISSUES.find(x=>x.id===id); if(!i)return;
+  if(!confirm('削除しますか？\n「'+i.title+'」'))return;
+  await sb.from('nurture_issues').delete().eq('id',id);
+  ISSUES=ISSUES.filter(x=>x.id!==id); renderIssues();
+}
+
+// ============================================================
+// 成果物ログ（弊社提出物）
+// ============================================================
+function toggleDelivForm(){ document.getElementById('delivForm').classList.toggle('on'); }
+function renderDeliverables(){
+  const ul=document.getElementById('delivList'); if(!ul)return;
+  ul.innerHTML='';
+  document.getElementById('delivEmpty').style.display = DELIVS.length?'none':'block';
+  const dc=document.getElementById('delivCnt'); if(dc) dc.textContent = DELIVS.length?DELIVS.length:'';
+  DELIVS.forEach(d=>{
+    const li=document.createElement('li'); li.className='deliv-item';
+    const titleHtml = d.url ? '<a href="'+esc(d.url)+'" target="_blank" rel="noopener">'+esc(d.title)+'</a>' : esc(d.title);
+    li.innerHTML='<div class="d-date">'+fmtDate(d.delivered_on)+'</div>'+
+      '<div class="d-main"><div class="d-t">'+titleHtml+(d.category?'<span class="d-cat">'+esc(d.category)+'</span>':'')+'</div>'+
+      (d.summary?'<div class="d-sum">'+esc(d.summary)+'</div>':'')+'</div>'+
+      '<span class="d-del" onclick="delDeliverable(\''+d.id+'\')">×</span>';
+    ul.appendChild(li);
+  });
+}
+async function addDeliverable(){
+  if(!sb)return;
+  const title=document.getElementById('delivTitle').value.trim();
+  if(!title){toast('タイトルを入力してください');return;}
+  const category=document.getElementById('delivCat').value;
+  const url=document.getElementById('delivUrl').value.trim();
+  const summary=document.getElementById('delivSummary').value.trim();
+  const date=document.getElementById('delivDate').value || new Date().toISOString().slice(0,10);
+  const {data,error}=await sb.from('nurture_deliverables').insert({board_id:BID,title,category,url,summary,delivered_on:date}).select().single();
+  if(error){toast('登録エラー');return;}
+  DELIVS.unshift(data);
+  DELIVS.sort((a,b)=>String(b.delivered_on||'').localeCompare(String(a.delivered_on||'')));
+  ['delivTitle','delivUrl','delivSummary'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('delivCat').value=''; document.getElementById('delivDate').value='';
+  document.getElementById('delivForm').classList.remove('on');
+  renderDeliverables(); toast('成果物を登録しました');
+}
+async function delDeliverable(id){
+  const d=DELIVS.find(x=>x.id===id); if(!d)return;
+  if(!confirm('この成果物を削除しますか？\n「'+d.title+'」'))return;
+  const row=Object.assign({},d);
+  await sb.from('nurture_deliverables').delete().eq('id',id);
+  DELIVS=DELIVS.filter(x=>x.id!==id); renderDeliverables();
+  showUndo('成果物を削除しました','nurture_deliverables',row);
+}
+
+// ============================================================
+// つまずきメモ（人ごと・自動保存）
+// ============================================================
+let stuckTimers={};
+function stuckDirty(owner){
+  const el=document.getElementById(owner==='kumiko'?'stuckK':'stuckC');
+  const savedEl=document.getElementById(owner==='kumiko'?'savedK':'savedC');
+  savedEl.textContent='入力中…';
+  clearTimeout(stuckTimers[owner]);
+  stuckTimers[owner]=setTimeout(async()=>{
+    if(!sb){savedEl.textContent='';return;}
+    await sb.from('nurture_stuck').upsert({board_id:BID,owner:owner,content:el.value,updated_at:new Date().toISOString()},{onConflict:'board_id,owner'});
+    savedEl.textContent='✓ 保存しました';
+    setTimeout(()=>{savedEl.textContent='';},1800);
+  },700);
+}
+
+// ============================================================
+// 貼り付け → 仕分け（ヒューリスティック）
+// ============================================================
+const TASK_HINT=/(する|やる|作る|つくる|送る|送信|用意|準備|書く|考える|チェック|確認|設計|修正|対応|共有|連絡|提出|決める|まとめる|見直す|返信|作成|依頼|手配|予約|設定|アップ|投稿|撮る|募集|締め|〆|まで|TODO|ToDo|タスク|やること)/;
+const KUMIKO_HINT=/(くみこ|森川|もりくみ|Merone|メローネ|私が|こちらで|弊社)/;
+const TOPIC_HINT=/(決めたこと|決定|方針|共有事項|議題|話したこと|メモ：|メモ:|前提|背景|所感)/;
+
+function splitClean(text){
+  return text.split(/\r?\n/).map(l=>l.replace(/^[\s　]*[-・*※◯○●▶▸►☐□✓✔①-⑳\d]+[\.\)、:：]?\s*/,'').replace(/^[\s　]+|[\s　]+$/g,'')).filter(Boolean);
+}
+function parseAndPreview(){
+  const raw=document.getElementById('pasteBox').value;
+  const lines=splitClean(raw);
+  if(!lines.length){toast('テキストを貼り付けてから実行してください');return;}
+  pvData = lines.map(l=>{
+    let owner=null, arrowClient=false;
+    // 「担当 → やること」形式
+    const arrow=l.match(/^(.{1,12}?)\s*(?:→|➡|=>|:|：)\s*(.+)$/);
+    let title=l;
+    if(arrow){
+      const head=arrow[1];
+      if(KUMIKO_HINT.test(head)) owner='kumiko';
+      else if(/さん|様|クライアント|相手|先方/.test(head) || (META.client_label && head.includes(META.client_label))) { owner='client'; arrowClient=true; }
+      // 議題っぽいヘッダーはタイトルだけにしない
+      if(owner) title=arrow[2].trim();
+    }
+    if(!owner){
+      if(KUMIKO_HINT.test(l)) owner='kumiko';
+      else if(/さん|様|先方|クライアント/.test(l) || (META.client_label && l.includes(META.client_label))) owner='client';
+    }
+    const isTopic = TOPIC_HINT.test(l) || (!TASK_HINT.test(l) && !arrow && !owner);
+    return { kind: isTopic?'topic':'task', title:title, owner: owner||'kumiko' };
+  });
+  renderPreview();
+  document.getElementById('pvOverlay').classList.add('on');
+}
+function renderPreview(){
+  const box=document.getElementById('pvList');
+  box.innerHTML='';
+  pvData.forEach((it,i)=>{
+    const row=document.createElement('div');
+    row.className='pv-item'+(it.kind==='topic'?' istopic':'');
+    row.innerHTML=
+      '<span class="pv-kind '+it.kind+'" onclick="pvToggleKind('+i+')" title="クリックでタスク⇄議題">'+(it.kind==='task'?'タスク':'議題')+'</span>'+
+      '<input class="pv-title" value="'+esc(it.title).replace(/"/g,'&quot;')+'" oninput="pvData['+i+'].title=this.value">'+
+      (it.kind==='task'
+        ? '<select onchange="pvData['+i+'].owner=this.value"><option value="kumiko"'+(it.owner==='kumiko'?' selected':'')+'>株式会社Merone</option><option value="client"'+(it.owner==='client'?' selected':'')+'>'+esc(META.client_label)+'</option></select>'
+        : '')+
+      '<span class="rm" onclick="pvRemove('+i+')">×</span>';
+    box.appendChild(row);
+  });
+  if(!pvData.length) box.innerHTML='<div class="empty-note">仕分ける行がありません</div>';
+}
+function pvToggleKind(i){ pvData[i].kind = pvData[i].kind==='task'?'topic':'task'; renderPreview(); }
+function pvRemove(i){ pvData.splice(i,1); renderPreview(); }
+function closePreview(){ document.getElementById('pvOverlay').classList.remove('on'); }
+async function commitPreview(){
+  if(!sb){toast('未接続');return;}
+  let nt=0,ng=0;
+  for(const it of pvData){
+    if(!it.title.trim()) continue;
+    if(it.kind==='task'){ await addTask(it.title.trim(), it.owner); nt++; }
+    else { await addTopic(it.title.trim()); ng++; }
+  }
+  renderTasks(); renderTopics();
+  closePreview();
+  document.getElementById('pasteBox').value='';
+  toast('登録完了：タスク'+nt+'件 / 議題'+ng+'件');
+}
+
+// ============================================================
+// 診断
+// ============================================================
+async function runDiag(){
+  document.getElementById('diagOverlay').classList.add('on');
+  const body=document.getElementById('diagBody');
+  if(!sb){ body.innerHTML='<div><span>Supabase接続</span><span class="r">✕ 未設定</span></div>'; return; }
+  body.innerHTML='確認中…';
+  const rows=[];
+  rows.push(await checkTable('nurture_tasks'));
+  rows.push(await checkTable('nurture_topics'));
+  rows.push(await checkTable('nurture_stuck'));
+  rows.push(await checkTable('nurture_meta'));
+  rows.push(await checkTable('nurture_directives'));
+  rows.push(await checkTable('nurture_issues'));
+  rows.push(await checkTable('nurture_deliverables'));
+  rows.push(await checkTable('nurture_exec_notes'));
+  rows.push(await checkTable('nurture_access'));
+  body.innerHTML = '<div><span>Supabase URL</span><span class="g">'+SUPABASE_CONFIG.url.replace('https://','')+'</span></div>'+
+    '<div><span>ボードID</span><span class="g">'+BID+'</span></div>'+ rows.join('');
+}
+async function checkTable(name){
+  try{
+    const {error}=await sb.from(name).select('*',{count:'exact',head:true}).eq('board_id',BID);
+    if(error) return '<div><span>'+name+'</span><span class="r">✕ '+esc(error.message)+'</span></div>';
+    return '<div><span>'+name+'</span><span class="g">✓ OK</span></div>';
+  }catch(e){ return '<div><span>'+name+'</span><span class="r">✕ '+esc(e.message||e)+'</span></div>'; }
+}
+
+// ============================================================
+// util
+// ============================================================
+function setConn(ok,txt){
+  const d=document.getElementById('connDot');
+  d.className='dot '+(ok?'ok':'err');
+  document.getElementById('connTxt').textContent=txt;
+}
+function esc(s){ return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),2200);
+}
+function closeEl(id){ document.getElementById(id).classList.remove('on'); }
+
+// ---- 誤削除防止：削除の「元に戻す」（数秒間 復元可能）----
+let _undo=null;
+function showUndo(msg, table, row){
+  _undo={table, row:Object.assign({},row)};
+  const t=document.getElementById('toast');
+  t.innerHTML=esc(msg)+' <span class="undo-btn" onclick="doUndo()">元に戻す</span>';
+  t.classList.add('on');
+  clearTimeout(t._t); t._t=setTimeout(()=>{ t.classList.remove('on'); _undo=null; }, 8000);
+}
+async function doUndo(){
+  if(!_undo || !sb) return;
+  const u=_undo; _undo=null;
+  const {error}=await sb.from(u.table).insert(u.row);
+  if(error){ toast('復元エラー：'+error.message); return; }
+  toast('元に戻しました'); loadAll();
+}
+// ---- 現在のボードのデータをJSONで手元に保存（バックアップ）----
+function downloadBackup(){
+  try{
+    const data={ board:BID, client:(META.client_label||''), exported_at:new Date().toISOString(),
+      tasks:TASKS, directives:DIRECTIVES, deliverables:DELIVS, exec_notes:EXEC_NOTES, topics:TOPICS };
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='nurture_'+BID+'_'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    toast('このボードのデータを保存しました');
+  }catch(e){ toast('保存に失敗しました'); }
+}
+
+// ============================================================
+// 認証（許可アドレスのみ・メールリンクログイン）
+// ============================================================
+// アクセス可否は Supabase の nurture_access（ボード別許可リスト）で判定する
+let boardStarted = false;
+
+function authMsg(text,type){
+  const el=document.getElementById('authMsg');
+  el.textContent=text||''; el.className='authmsg'+(type?' '+type:'');
+}
+function showGate(){ document.getElementById('authGate').classList.remove('hide'); }
+function hideGate(){ document.getElementById('authGate').classList.add('hide'); }
+function resetAuth(){
+  document.getElementById('authStep1').style.display='';
+  document.getElementById('authStep2').style.display='none';
+  authMsg('');
+}
+async function sendMagic(){
+  const email=(document.getElementById('authEmail').value||'').trim().toLowerCase();
+  if(!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ authMsg('メールアドレスを正しくご入力ください','err'); return; }
+  const btn=document.getElementById('authSendBtn'); btn.disabled=true; btn.textContent='送信中…';
+  const {error}=await sb.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.href.split('#')[0] } });
+  btn.disabled=false; btn.textContent='ログイン用リンクを送信';
+  if(error){ authMsg('送信エラー：'+error.message,'err'); return; }
+  try{ localStorage.setItem('nurture_last_email', email); }catch(e){}
+  document.getElementById('sentTo').textContent=email;
+  document.getElementById('authStep1').style.display='none';
+  document.getElementById('authStep2').style.display='';
+  authMsg('');
+}
+async function evalSession(session){
+  if(session && session.user){
+    const email=(session.user.email||'').toLowerCase();
+    let ok=false;
+    try{
+      const {data}=await sb.from('nurture_access').select('board_id').eq('board_id',BID).eq('email',email).maybeSingle();
+      ok=!!data;
+    }catch(e){ ok=false; }
+    if(!ok){
+      // このボードは権限がなくても、他にアクセスできるボードがあればそこへ回す（管理者・役員向け）
+      try{
+        const {data}=await sb.from('nurture_access').select('board_id').eq('email',email);
+        const others=(data||[]).map(r=>r.board_id).filter(b=>b!=='client1');
+        const order=['riet','famm','abcash','she']; others.sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+        if(others.length){ BID=others[0]; ok=true; }
+      }catch(e){}
+    }
+    if(!ok){
+      await sb.auth.signOut(); showGate(); resetAuth();
+      authMsg('このボードへのアクセス権限がありません。担当者にご確認ください。','err'); return false;
+    }
+    currentUserEmail=email;
+    // アクセス管理の role_hint から、この人の権限を判定（owner=くみこ / kumiko=Merone / client=先方）
+    try{
+      const {data}=await sb.from('nurture_access').select('role_hint').eq('email',email);
+      const hints=(data||[]).map(r=>r.role_hint);
+      currentUserRoleHint = hints.includes('owner') ? 'owner'
+        : (hints.includes('kumiko')||hints.includes('executive')) ? 'kumiko' : 'client';
+    }catch(e){ currentUserRoleHint='client'; }
+    // 表示ロールを自動設定（owner/kumiko/executive は「株式会社Merone」、client は「クライアント」）
+    if(ROLE!=='kumiko' && ROLE!=='client'){
+      ROLE = (currentUserRoleHint==='client') ? 'client' : 'kumiko';
+      localStorage.setItem('nurture_role', ROLE);
+    }
+    document.getElementById('authUser').textContent=email+'　';
+    hideGate();
+    startBoard();
+    return true;
+  }
+  showGate();
+  return false;
+}
+async function logout(){
+  if(sb) await sb.auth.signOut();
+  location.reload();
+}
+function startBoard(){
+  if(boardStarted) return; boardStarted=true;
+  loadAll().then(()=>ensureRole());
+  loadAdminTabs();
+  setInterval(()=>{ if(!document.querySelector('.overlay.on') && !isEditing()) loadAll(); }, 5000);
+  window.addEventListener('focus',()=>{ if(boardStarted && !isEditing()) loadAll(); });
+}
+
+// 複数ボードにアクセス権がある人（株式会社Merone・役員）だけ、横断タブを表示
+async function loadAdminTabs(){
+  if(!sb || !currentUserEmail) return;
+  let rows=[];
+  try{ const {data}=await sb.from('nurture_access').select('board_id,role_hint').eq('email',currentUserEmail); rows=data||[]; }catch(e){}
+  const boards=rows.filter(r=>(r.role_hint==='owner'||r.role_hint==='kumiko'||r.role_hint==='executive') && r.board_id!=='client1').map(r=>r.board_id);
+  const order=['riet','famm','abcash','she'];
+  boards.sort((a,b)=>{ const ia=order.indexOf(a),ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
+  const bar=document.getElementById('boardTabs');
+  if(!bar) return;
+  if(boards.length < 2){ bar.classList.remove('on'); bar.innerHTML=''; return; }
+  // ボード名を取得
+  try{ const {data}=await sb.from('nurture_meta').select('board_id,client_label').in('board_id',boards);
+    (data||[]).forEach(m=>ADMIN_BOARD_NAMES[m.board_id]=m.client_label); }catch(e){}
+  bar.innerHTML='<span class="tablabel">管理ボード</span>'+boards.map(b=>
+    '<button class="board-tab" data-b="'+b+'" onclick="switchBoard(\''+b+'\')"><span class="dot"></span>'+
+    esc(ADMIN_BOARD_NAMES[b]||BOARD_NAMES[b]||b)+'</button>').join('');
+  bar.classList.add('on');
+  // 現在ボードがタブ内でなければ最初のボードへ、そうでなければハイライト
+  if(!boards.includes(BID)) switchBoard(boards[0]);
+  else highlightTab(BID);
+}
+function highlightTab(b){
+  document.querySelectorAll('.board-tab').forEach(t=>t.classList.toggle('active', t.getAttribute('data-b')===b));
+}
+function switchBoard(b){
+  if(BID===b){ highlightTab(b); return; }
+  BID=b; highlightTab(b);
+  // 開いているフォーム・入力をリセットして読み直し
+  document.querySelectorAll('.overlay.on').forEach(o=>o.classList.remove('on'));
+  loadAll();
+}
+
+// ============================================================
+// 起動
+// ============================================================
+
+function resetDemo(){ localStorage.removeItem('nurture_demo_she'); location.reload(); }
+function makeSB(){ const SEED={"nurture_meta":[{"board_id":"she","title":"SHElikes ナーチャリング進行ボード","client_label":"SHElikes"}],"nurture_directives":[{"id":"d1","board_id":"she","status":"active","author":"kumiko","sort_order":1,"title":"勉強会の参加率を上げる","metric_label":"参加率","target_value":"60","current_value":"48","unit":"%","goal_dir":"up"},{"id":"d2","board_id":"she","status":"active","author":"kumiko","sort_order":2,"title":"体験からの入会率を上げる","metric_label":"入会率","target_value":"25","current_value":"19","unit":"%","goal_dir":"up"}],"nurture_exec_notes":[{"id":"n1","board_id":"she","author":"kumiko","created_at":"2026-07-15T01:00:00Z","body":"20代等身大のロールモデル訴求を強化してほしいです。","kind":"request"},{"id":"n2","board_id":"she","author":"kumiko","created_at":"2026-07-14T01:00:00Z","body":"初回よろしくお願いします。数字は都度共有を。","kind":"note"}],"nurture_tasks":[{"id":"t1","board_id":"she","memo":"","sort_order":1,"title":"募集配信文の作成","owner":"kumiko","status":"doing"},{"id":"t2","board_id":"she","memo":"","sort_order":2,"title":"LPのファーストビュー改善","owner":"kumiko","status":"todo"},{"id":"t3","board_id":"she","memo":"","sort_order":3,"title":"勉強会の運営準備","owner":"client","status":"todo"},{"id":"t4","board_id":"she","memo":"","sort_order":4,"title":"講師の手配","owner":"client","status":"done"}],"nurture_stuck":[{"board_id":"she","owner":"kumiko","content":"ペルソナに合わせた訴求を調整中"},{"board_id":"she","owner":"client","content":"日程を確定中"}],"nurture_topics":[{"id":"p1","board_id":"she","author":"kumiko","created_at":"2026-07-14T12:00:00Z","content":"初回配信は平日夜21時で合意"}],"nurture_deliverables":[{"id":"v1","board_id":"she","url":"https://example.com","delivered_on":"2026-07-12","title":"SHElikes向け 募集LP 初稿","category":"LP","summary":"20代訴求のFV案"}]}; const KEY='nurture_demo_she';
+  let DB; try{ DB=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+  if(!DB || !DB.nurture_exec_notes || !DB.nurture_exec_notes[0] || !DB.nurture_exec_notes[0].kind){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem(KEY,JSON.stringify(DB)); }
+  let idc=1; const persist=()=>localStorage.setItem(KEY,JSON.stringify(DB));
+  class Q{ constructor(t){this.t=t;this._op='select';this._f=[];this._in=null;this._orders=[];this._head=false;this._single=false;this._maybe=false;this._conflict=null;}
+    select(c,o){if(o&&o.head)this._head=true;return this;} eq(c,v){this._f.push([c,v]);return this;} in(c,a){this._in=[c,a];return this;}
+    order(c,o){this._orders.push([c,!(o&&o.ascending===false)]);return this;} single(){this._single=true;return this;} maybeSingle(){this._maybe=true;return this;}
+    insert(r){this._op='insert';this._row=r;return this;} update(p){this._op='update';this._row=p;return this;} upsert(r,o){this._op='upsert';this._row=r;this._conflict=o&&o.onConflict;return this;} delete(){this._op='delete';return this;}
+    _m(r){return this._f.every(([c,v])=>r[c]===v)&&(!this._in||this._in[1].includes(r[this._in[0]]));}
+    _run(){const arr=DB[this.t]||(DB[this.t]=[]);
+      if(this._op==='select'){let rows=arr.filter(r=>this._m(r));[...this._orders].reverse().forEach(([c,asc])=>rows.sort((a,b)=>{const x=a[c]==null?'':a[c],y=b[c]==null?'':b[c];return x===y?0:(x>y?1:-1)*(asc?1:-1);}));
+        if(this._head)return{data:null,count:rows.length,error:null}; if(this._maybe)return{data:rows[0]||null,error:null}; if(this._single)return{data:rows[0]||null,error:rows[0]?null:{message:'no'}}; return{data:rows,error:null};}
+      if(this._op==='insert'){const row=Object.assign({},this._row); if(!row.id)row.id='demo_'+(idc++)+'_'+Date.now(); arr.push(row); persist(); return{data:row,error:null};}
+      if(this._op==='update'){let u=null; arr.forEach((r,i)=>{if(this._m(r)){arr[i]=Object.assign({},r,this._row);u=arr[i];}}); persist(); return{data:u,error:u?null:{message:'nf'}};}
+      if(this._op==='upsert'){const row=Object.assign({},this._row); const keys=this._conflict?this._conflict.split(','):['board_id']; const i=arr.findIndex(r=>keys.every(k=>r[k]===row[k])); if(i>=0)arr[i]=Object.assign({},arr[i],row); else arr.push(row); persist(); return{data:row,error:null};}
+      if(this._op==='delete'){DB[this.t]=arr.filter(r=>!this._m(r)); persist(); return{data:null,error:null};} }
+    then(res){return Promise.resolve(this._run()).then(res);} }
+  return { from:t=>new Q(t), auth:{getSession:async()=>({data:{session:{user:{email:'demo'}}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>{}} };
+}
+function switchRole(){ const seq=['kumiko','client']; ROLE=seq[(seq.indexOf(ROLE)+1)%seq.length]||'kumiko'; localStorage.setItem('nurture_demo_she_role',ROLE); paintRole(); }
+(function demoInit(){ document.getElementById('authGate').classList.add('hide'); ROLE = localStorage.getItem('nurture_demo_she_role') || 'kumiko'; currentUserRoleHint='owner'; BID='she'; loadAll().then(()=>paintRole()); setInterval(()=>{ if(!document.querySelector('.overlay.on') && !isEditing()) loadAll(); }, 4000); })();
+</script>
+</body>
+</html>
