@@ -400,7 +400,7 @@ details.rec .rec-body{padding:0 18px 18px}
     <div class="h-top">
       <div>
         <div class="h-title"><span id="boardTitle">ナーチャリング共有ボード</span>
-          <span class="edit" onclick="openSettings(false)">名称を編集</span></div>
+          <span class="edit" id="editNameBtn" onclick="openSettings(false)" style="display:none">名称を編集</span></div>
         <div class="h-sub">株式会社Merone ／ <span id="clientLabelSub">クライアント</span>　タスク・目標・進捗を相互に共有</div>
       </div>
       <div class="who">表示中：<b id="whoName">－</b> <button onclick="switchRole()">切替</button></div>
@@ -627,7 +627,9 @@ details.rec .rec-body{padding:0 18px 18px}
 // ============================================================
 let BID = SUPABASE_CONFIG.boardId || 'client1';
 let currentUserEmail = '';
+let currentUserRoleHint = '';   // owner=くみこ / kumiko=Merone(清水等) / client=先方
 let ADMIN_BOARD_NAMES = {};
+function isOwner(){ return currentUserRoleHint==='owner'; }
 // ボード名（クライアント名）は公開ソースに載せない。ログイン後にDB(nurture_meta)から取得して表示。
 const BOARD_NAMES = {};
 (function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent='';
@@ -649,7 +651,7 @@ function ensureRole(){
   paintRole();
   // 初回：役割が未設定、またはクライアント名が未入力なら設定モーダルを自動で開く
   const needsSetup = (ROLE!=='kumiko' && ROLE!=='client') || !META.client_label || META.client_label==='クライアント';
-  if (needsSetup) openSettings(true);
+  if (needsSetup && isOwner()) openSettings(true);
 }
 function switchRole(){
   ROLE = (ROLE === 'kumiko') ? 'client' : 'kumiko';
@@ -659,6 +661,7 @@ function switchRole(){
 function paintRole(){
   const name = (ROLE==='kumiko'||ROLE==='executive') ? '株式会社Merone' : META.client_label;
   document.getElementById('whoName').textContent = name;
+  const enb=document.getElementById('editNameBtn'); if(enb) enb.style.display = isOwner() ? '' : 'none';
   document.getElementById('mineK').style.display = ROLE==='kumiko' ? '' : 'none';
   document.getElementById('mineC').style.display = ROLE==='client' ? '' : 'none';
   // 経営セクションの編集権限（役員・くみこのみ）
@@ -684,6 +687,7 @@ function applyMeta(){
   paintRole();
 }
 function openSettings(first){
+  if(!isOwner()){ toast('ボード名・クライアント名の編集は管理者（株式会社Merone代表）のみ可能です'); return; }
   // 既定値（デフォルトのままなら空欄にして入力を促す）
   document.getElementById('setTitle').value  = (META.title && META.title!=='ナーチャリング共有ボード') ? META.title : '';
   document.getElementById('setClient').value = (META.client_label && META.client_label!=='クライアント') ? META.client_label : '';
@@ -695,6 +699,7 @@ function openSettings(first){
   setTimeout(()=>document.getElementById('setClient').focus(),50);
 }
 async function saveSettings(){
+  if(!isOwner()){ toast('編集権限がありません'); closeEl('setOverlay'); return; }
   const c = document.getElementById('setClient').value.trim();
   if(!c){ toast('クライアントの表示名を入力してください'); document.getElementById('setClient').focus(); return; }
   const t = document.getElementById('setTitle').value.trim();
@@ -1404,14 +1409,17 @@ async function evalSession(session){
       authMsg('このボードへのアクセス権限がありません。担当者にご確認ください。','err'); return false;
     }
     currentUserEmail=email;
-    // 役割が未設定なら、アクセス管理の role_hint から自動判定（kumiko/executive/client）
-    if(ROLE!=='kumiko' && ROLE!=='client' && ROLE!=='executive'){
-      try{
-        const {data}=await sb.from('nurture_access').select('role_hint').eq('board_id',BID).eq('email',email).maybeSingle();
-        if(data && (data.role_hint==='kumiko'||data.role_hint==='executive'||data.role_hint==='client')){
-          ROLE=data.role_hint; localStorage.setItem('nurture_role',ROLE);
-        }
-      }catch(e){}
+    // アクセス管理の role_hint から、この人の権限を判定（owner=くみこ / kumiko=Merone / client=先方）
+    try{
+      const {data}=await sb.from('nurture_access').select('role_hint').eq('email',email);
+      const hints=(data||[]).map(r=>r.role_hint);
+      currentUserRoleHint = hints.includes('owner') ? 'owner'
+        : (hints.includes('kumiko')||hints.includes('executive')) ? 'kumiko' : 'client';
+    }catch(e){ currentUserRoleHint='client'; }
+    // 表示ロールを自動設定（owner/kumiko/executive は「株式会社Merone」、client は「クライアント」）
+    if(ROLE!=='kumiko' && ROLE!=='client'){
+      ROLE = (currentUserRoleHint==='client') ? 'client' : 'kumiko';
+      localStorage.setItem('nurture_role', ROLE);
     }
     document.getElementById('authUser').textContent=email+'　';
     hideGate();
@@ -1438,7 +1446,7 @@ async function loadAdminTabs(){
   if(!sb || !currentUserEmail) return;
   let rows=[];
   try{ const {data}=await sb.from('nurture_access').select('board_id,role_hint').eq('email',currentUserEmail); rows=data||[]; }catch(e){}
-  const boards=rows.filter(r=>(r.role_hint==='kumiko'||r.role_hint==='executive') && r.board_id!=='client1').map(r=>r.board_id);
+  const boards=rows.filter(r=>(r.role_hint==='owner'||r.role_hint==='kumiko'||r.role_hint==='executive') && r.board_id!=='client1').map(r=>r.board_id);
   const order=['riet','famm','abcash','she'];
   boards.sort((a,b)=>{ const ia=order.indexOf(a),ib=order.indexOf(b); return (ia<0?99:ia)-(ib<0?99:ib); });
   const bar=document.getElementById('boardTabs');
@@ -1491,7 +1499,7 @@ function makeSB(){ const SEED={"nurture_meta":[{"board_id":"abcash","title":"ABC
   return { from:t=>new Q(t), auth:{getSession:async()=>({data:{session:{user:{email:'demo'}}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>{}} };
 }
 function switchRole(){ const seq=['kumiko','client']; ROLE=seq[(seq.indexOf(ROLE)+1)%seq.length]||'kumiko'; localStorage.setItem('nurture_demo_abcash_role',ROLE); paintRole(); }
-(function demoInit(){ document.getElementById('authGate').classList.add('hide'); ROLE = localStorage.getItem('nurture_demo_abcash_role') || 'kumiko'; BID='abcash'; loadAll().then(()=>paintRole()); setInterval(()=>{ if(!document.querySelector('.overlay.on') && !isEditing()) loadAll(); }, 4000); })();
+(function demoInit(){ document.getElementById('authGate').classList.add('hide'); ROLE = localStorage.getItem('nurture_demo_abcash_role') || 'kumiko'; currentUserRoleHint='owner'; BID='abcash'; loadAll().then(()=>paintRole()); setInterval(()=>{ if(!document.querySelector('.overlay.on') && !isEditing()) loadAll(); }, 4000); })();
 </script>
 </body>
 </html>
