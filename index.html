@@ -923,7 +923,15 @@ function ownerLabel(o){ return (o==='kumiko'||o==='executive')?'株式会社Mero
 // 経営：期待・注視指標（役員／くみこが編集、担当者は閲覧）
 // ============================================================
 function toggleDirForm(){ if(!canEditDirectives())return; document.getElementById('dirForm').classList.toggle('on'); }
-function numOr(v){ const n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; }
+// 数値を取り出す（全角数字「６００件」やカンマ「1,200」も認識する）
+function toHalf(s){ return String(s==null?'':s).replace(/[０-９．，－]/g, ch=>String.fromCharCode(ch.charCodeAt(0)-0xFEE0)); }
+function numOr(v){ const n=parseFloat(toHalf(v).replace(/,/g,'').replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; }
+// 単位（明示の unit が無ければ、目標値に含まれる「件」などを拾う）
+function unitOf(d){
+  if(d && d.unit) return d.unit;
+  const t=toHalf(d && d.target_value).replace(/[0-9.,\-\s]/g,'');
+  return t||'';
+}
 // 目標の進捗を計算（方向対応）: {pct, done, hasProg}
 function kpiProgress(d){
   const tgt=numOr(d.target_value), cur=numOr(d.current_value);
@@ -958,7 +966,7 @@ function renderDirectives(){
     if(p.hasProg){
       const diff = down ? (p.cur - p.tgt) : (p.tgt - p.cur);
       const remainHtml = p.done ? '<div class="kpi-remain reached">目標達成しています</div>'
-        : '<div class="kpi-remain">目標まで あと '+Math.abs(Math.round(diff*10)/10)+esc(d.unit||'')+'</div>';
+        : '<div class="kpi-remain">目標まで あと '+Math.abs(Math.round(diff*10)/10)+esc(unitOf(d))+'</div>';
       main+=remainHtml+'<div class="kpi-bar'+(p.done?' done':'')+'"><i style="width:'+p.pct+'%"></i></div>';
     }else if(canEdit){
       main+='<div class="kpi-remain">現在値と目標値を入れると達成度が自動計算されます</div>';
