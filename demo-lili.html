@@ -1251,14 +1251,34 @@ function stuckDirty(owner){
 const TASK_HINT=/(する|やる|作る|つくる|送る|送信|用意|準備|書く|考える|チェック|確認|設計|修正|対応|共有|連絡|提出|決める|まとめる|見直す|返信|作成|依頼|手配|予約|設定|アップ|投稿|撮る|募集|締め|〆|まで|TODO|ToDo|タスク|やること)/;
 const KUMIKO_HINT=/(くみこ|森川|もりくみ|Merone|メローネ|私が|こちらで|弊社)/;
 const TOPIC_HINT=/(決めたこと|決定|方針|共有事項|議題|話したこと|メモ：|メモ:|前提|背景|所感)/;
+// 議事録に混じる「明らかにタスク/議題でないゴミ行」（見出し・日時・NextAction・タイムスタンプ等）を自動除外
+const JUNK_LABEL=/^(日時|日程|開催日時|参加者|出席者|場所|概要|アジェンダ|議題一覧|議事録|会議名?|ミーティング|MTG|next\s*action|nextaction|補足|懸念点?|決定事項|議論内容|所感|メモ|url|リンク|録画|次のステップ|本日のサマリー|サマリー|背景・経緯|背景|経緯|現状|課題|目的|スコープ|対象|論点|ゴール|前提|詳細|ポイント|その他|補足事項|次のアクション|アクション|担当|期限)\s*[:：]?\s*$/i;
+const TASK_VERB2=/(する|やる|作成|送付|提出|確認|依頼|交渉|作る|準備|共有|設定|連絡|調整|募集|収録|レビュー|まとめ|決める|見直|検討|対応|手配|予約|投稿|撮|書く)/;
+function isJunkLine(text){
+  if(!text || !text.trim()) return true;
+  const s=text.trim();
+  const core=s.replace(/^[#>*\-–—・●○\s]+/,'').replace(/\*\*/g,'').trim();
+  if(!core) return true;
+  if(/^(日時|日程|開催日時|参加者|出席者|場所|録画(URL)?|Zoom\s*URL)\s*[:：]/i.test(core)) return true;
+  if(JUNK_LABEL.test(core)) return true;
+  if(/(Zoom\s*ミーティング|定例|ミーティング)\s*$/.test(core) && core.length<40) return true;
+  if(/^#/.test(s) && core.length<44 && !TASK_VERB2.test(core)) return true;
+  if(/^\(?\d{1,2}:\d{2}(:\d{2})?\)?$/.test(core)) return true;
+  if(/^[=＝\-—_・\s]{4,}$/.test(s)) return true;
+  if(/^https?:\/\/\S+$/.test(core)) return true;
+  return false;
+}
 
 function splitClean(text){
   return text.split(/\r?\n/).map(l=>l.replace(/^[\s　]*[-・*※◯○●▶▸►☐□✓✔①-⑳\d]+[\.\)、:：]?\s*/,'').replace(/^[\s　]+|[\s　]+$/g,'')).filter(Boolean);
 }
 function parseAndPreview(){
   const raw=document.getElementById('pasteBox').value;
-  const lines=splitClean(raw);
-  if(!lines.length){toast('テキストを貼り付けてから実行してください');return;}
+  const all=splitClean(raw);
+  if(!all.length){toast('テキストを貼り付けてから実行してください');return;}
+  const lines=all.filter(l=>!isJunkLine(l));   // 見出し・日時などのゴミ行を自動除外
+  const removed=all.length-lines.length;
+  if(!lines.length){toast('タスク・議題になる行が見つかりませんでした（見出しや日時のみでした）');return;}
   pvData = lines.map(l=>{
     let owner=null, arrowClient=false;
     // 「担当 → やること」形式
@@ -1279,6 +1299,7 @@ function parseAndPreview(){
     return { kind: isTopic?'topic':'task', title:title, owner: owner||'kumiko' };
   });
   renderPreview();
+  if(removed>0) toast('見出し・日時など '+removed+' 行を自動で除外しました');
   document.getElementById('pvOverlay').classList.add('on');
 }
 function renderPreview(){
