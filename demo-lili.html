@@ -373,12 +373,15 @@ details.rec .rec-body{padding:0 18px 18px}
 .diag{font-size:.8rem;line-height:1.8}
 .diag div{display:flex;justify-content:space-between;border-bottom:1px dashed var(--line);padding:4px 0}
 .diag .g{color:var(--ok);font-weight:700}.diag .r{color:var(--pink-deep);font-weight:700}
+
+.demo-banner{background:#fff4d6;border:1px solid #f0c869;color:#8a6d1f;border-radius:12px;padding:9px 14px;font-size:.78rem;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.demo-banner b{color:#6f5716}.demo-banner button{border:1px solid #d9b24a;background:#fff;color:#8a6d1f;border-radius:20px;padding:4px 12px;font-size:.74rem;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
 
 <!-- ===== ログインゲート（許可アドレスのみ） ===== -->
-<div id="authGate" class="authgate">
+<div id="authGate" class="authgate hide">
   <div class="authcard">
     <h2>ナーチャリング共有ボード</h2>
     <div id="gateBoard" style="font-weight:800;color:#26405f;font-size:.92rem;margin-bottom:10px"></div>
@@ -398,6 +401,7 @@ details.rec .rec-body{padding:0 18px 18px}
 </div>
 
 <div class="wrap">
+  <div class="demo-banner"><span><b>LiLi用モックアップ</b>｜サンプルの見本です（初回説明用）。数字はカードの点線をクリックで直接編集できます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
 
   <!-- 管理者・役員：ボード横断タブ（複数ボードにアクセス権がある人のみ表示） -->
   <div class="board-tabs" id="boardTabs"></div>
@@ -642,10 +646,7 @@ function isOwner(){ return currentUserRoleHint==='owner'; }
 const BOARD_NAMES = {};  // クライアント名は公開ソースに載せずDBから取得
 (function(){ const g=document.getElementById('gateBoard'); if(g) g.textContent='';
   try{ const em=document.getElementById('authEmail'), last=localStorage.getItem('nurture_last_email'); if(em&&last){ em.value=last; } }catch(e){} })();
-let sb = null;
-if (SUPABASE_CONFIG.enabled && window.supabase) {
-  sb = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
-}
+let sb = makeSB();
 let ROLE = localStorage.getItem('nurture_role'); // 'kumiko' | 'client'
 let META = { title:'ナーチャリング共有ボード', client_label:'クライアント' };
 let TASKS = [], TOPICS = [], DIRECTIVES = [], ISSUES = [], DELIVS = [], EXEC_NOTES = [];
@@ -1507,13 +1508,29 @@ function switchBoard(b){
 // ============================================================
 // 起動
 // ============================================================
-(async function init(){
-  if(!sb){ hideGate(); setConn(false,'supabase_config.js が未設定'); ensureRole(); return; }
-  // メールリンクから戻ってきた時＆通常ログインを検知
-  sb.auth.onAuthStateChange((_event, session)=>{ evalSession(session); });
-  const { data:{ session } } = await sb.auth.getSession();
-  await evalSession(session);
-})();
+
+function resetDemo(){ localStorage.removeItem('nurture_demo_lili'); location.reload(); }
+function makeSB(){ const SEED={"nurture_meta":[{"board_id":"lili","title":"LiLi ナーチャリング進行ボード","client_label":"LiLi"}],"nurture_directives":[{"id":"d1","board_id":"lili","title":"施策からの成約率を引き上げる","metric_label":"成約率","target_value":"20","current_value":"14","unit":"%","goal_dir":"up","status":"active","author":"kumiko","sort_order":1},{"id":"d2","board_id":"lili","title":"リード獲得数を伸ばす","metric_label":"月間リード数","target_value":"300","current_value":"210","unit":"件","goal_dir":"up","status":"active","author":"kumiko","sort_order":2}],"nurture_exec_notes":[{"id":"n1","board_id":"lili","body":"初回の設計を丁寧に。優先順位をすり合わせながら進めましょう。","kind":"request","author":"kumiko","created_at":"2026-07-19T01:00:00Z"},{"id":"n2","board_id":"lili","body":"よろしくお願いします。数字は都度共有いただけると助かります。","kind":"note","author":"kumiko","created_at":"2026-07-18T02:00:00Z"}],"nurture_tasks":[{"id":"t1","board_id":"lili","title":"現状のファネルと数値をヒアリング","owner":"kumiko","status":"doing","memo":"","sort_order":1},{"id":"t2","board_id":"lili","title":"募集LP・配信文の改善案を作成","owner":"kumiko","status":"todo","memo":"","sort_order":2},{"id":"t3","board_id":"lili","title":"現状のKPIと素材を共有","owner":"client","status":"todo","memo":"","sort_order":3},{"id":"t4","board_id":"lili","title":"次回ミーティングの日程調整","owner":"client","status":"done","memo":"","sort_order":4}],"nurture_stuck":[{"board_id":"lili","owner":"kumiko","content":"ヒアリング内容をもとに設計を検討中"},{"board_id":"lili","owner":"client","content":"数値データを集約中"}],"nurture_topics":[{"id":"p1","board_id":"lili","content":"初回はファネルの現状把握と優先課題の特定から着手で合意","author":"kumiko","created_at":"2026-07-18T12:00:00Z"}],"nurture_deliverables":[{"id":"v1","board_id":"lili","title":"現状分析メモ 初稿","category":"資料","url":"https://example.com","summary":"ファネルとボトルネックの整理","delivered_on":"2026-07-18"}]}; const KEY='nurture_demo_lili';
+  let DB; try{ DB=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
+  if(!DB || !DB.nurture_exec_notes || !DB.nurture_exec_notes[0] || !DB.nurture_exec_notes[0].kind){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem(KEY,JSON.stringify(DB)); }
+  let idc=1; const persist=()=>localStorage.setItem(KEY,JSON.stringify(DB));
+  class Q{ constructor(t){this.t=t;this._op='select';this._f=[];this._in=null;this._orders=[];this._head=false;this._single=false;this._maybe=false;this._conflict=null;}
+    select(c,o){if(o&&o.head)this._head=true;return this;} eq(c,v){this._f.push([c,v]);return this;} in(c,a){this._in=[c,a];return this;}
+    order(c,o){this._orders.push([c,!(o&&o.ascending===false)]);return this;} single(){this._single=true;return this;} maybeSingle(){this._maybe=true;return this;}
+    insert(r){this._op='insert';this._row=r;return this;} update(p){this._op='update';this._row=p;return this;} upsert(r,o){this._op='upsert';this._row=r;this._conflict=o&&o.onConflict;return this;} delete(){this._op='delete';return this;}
+    _m(r){return this._f.every(([c,v])=>r[c]===v)&&(!this._in||this._in[1].includes(r[this._in[0]]));}
+    _run(){const arr=DB[this.t]||(DB[this.t]=[]);
+      if(this._op==='select'){let rows=arr.filter(r=>this._m(r));[...this._orders].reverse().forEach(([c,asc])=>rows.sort((a,b)=>{const x=a[c]==null?'':a[c],y=b[c]==null?'':b[c];return x===y?0:(x>y?1:-1)*(asc?1:-1);}));
+        if(this._head)return{data:null,count:rows.length,error:null}; if(this._maybe)return{data:rows[0]||null,error:null}; if(this._single)return{data:rows[0]||null,error:rows[0]?null:{message:'no'}}; return{data:rows,error:null};}
+      if(this._op==='insert'){const row=Object.assign({},this._row); if(!row.id)row.id='demo_'+(idc++)+'_'+Date.now(); arr.push(row); persist(); return{data:row,error:null};}
+      if(this._op==='update'){let u=null; arr.forEach((r,i)=>{if(this._m(r)){arr[i]=Object.assign({},r,this._row);u=arr[i];}}); persist(); return{data:u,error:u?null:{message:'nf'}};}
+      if(this._op==='upsert'){const row=Object.assign({},this._row); const keys=this._conflict?this._conflict.split(','):['board_id']; const i=arr.findIndex(r=>keys.every(k=>r[k]===row[k])); if(i>=0)arr[i]=Object.assign({},arr[i],row); else arr.push(row); persist(); return{data:row,error:null};}
+      if(this._op==='delete'){DB[this.t]=arr.filter(r=>!this._m(r)); persist(); return{data:null,error:null};} }
+    then(res){return Promise.resolve(this._run()).then(res);} }
+  return { from:t=>new Q(t), auth:{getSession:async()=>({data:{session:{user:{email:'demo'}}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}}),signOut:async()=>{}} };
+}
+function switchRole(){ const seq=['kumiko','client']; ROLE=seq[(seq.indexOf(ROLE)+1)%seq.length]||'kumiko'; localStorage.setItem('nurture_demo_lili_role',ROLE); paintRole(); }
+(function demoInit(){ document.getElementById('authGate').classList.add('hide'); ROLE = localStorage.getItem('nurture_demo_lili_role') || 'kumiko'; currentUserRoleHint='owner'; BID='lili'; loadAll().then(()=>paintRole()); setInterval(()=>{ if(!document.querySelector('.overlay.on') && !isEditing()) loadAll(); }, 4000); })();
 </script>
 </body>
 </html>
