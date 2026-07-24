@@ -326,6 +326,18 @@ details.rec[open] > summary::before{transform:rotate(90deg)}
 details.rec > summary:hover{background:var(--blue-soft)}
 details.rec .rec-cnt{font-size:.7rem;font-weight:700;color:var(--blue-mid);background:var(--blue-soft);border:1px solid var(--blue-line);border-radius:20px;padding:1px 9px;margin-left:2px}
 details.rec .rec-body{padding:0 18px 18px}
+/* 使い方・進め方ガイド */
+details.howto{border:1.5px solid var(--blue-line);background:linear-gradient(180deg,var(--blue-soft),#fff)}
+details.howto > summary{color:var(--blue-mid);font-size:1rem}
+details.howto > summary::before{color:var(--pink-deep)}
+.howto-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:720px){.howto-grid{grid-template-columns:1fr}}
+.howto-h{font-weight:800;color:var(--navy);font-size:.92rem;margin-bottom:9px;border-bottom:2px solid var(--blue-line);padding-bottom:6px;display:flex;align-items:center;gap:7px}
+.howto-h .num{width:20px;height:20px;border-radius:50%;background:var(--pink-deep);color:#fff;font-size:.7rem;display:inline-flex;align-items:center;justify-content:center;font-weight:800}
+.howto-col ul,.howto-col ol{margin:0;padding-left:1.3em}
+.howto-col li{font-size:.83rem;line-height:1.8;margin-bottom:8px;color:var(--ink)}
+.howto-col b{color:var(--navy)}
+.howto-note{grid-column:1/-1;background:rgba(240,201,105,.16);border:1px solid #f0c869;border-radius:10px;padding:9px 13px;font-size:.8rem;color:#8a6d1f;margin-top:4px}
 
 /* ---------- 課題トラッカー ---------- */
 .issue-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -401,7 +413,7 @@ details.rec .rec-body{padding:0 18px 18px}
 </div>
 
 <div class="wrap">
-  <div class="demo-banner"><span><b>LiLi用モックアップ</b>｜サンプルの見本です（初回説明用）。数字はカードの点線をクリックで直接編集できます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
+  <div class="demo-banner"><span><b>Li-Li用モックアップ</b>｜サンプルの見本です（初回説明用）。数字はカードの点線をクリックで直接編集できます。</span><button onclick="resetDemo()">サンプルを初期化</button></div>
 
   <!-- 管理者・役員：ボード横断タブ（複数ボードにアクセス権がある人のみ表示） -->
   <div class="board-tabs" id="boardTabs"></div>
@@ -419,6 +431,35 @@ details.rec .rec-body{padding:0 18px 18px}
     <div class="progress" title="タスクの完了率"><i id="progBar" style="width:0%"></i><span id="progTxt">0%</span></div>
     <div class="goal-summary" id="goalSummary"></div>
   </header>
+
+  <!-- ===== 使い方・進め方（スタッフ向けガイド） ===== -->
+  <details class="rec howto" open>
+    <summary>はじめての方へ ｜ 使い方・進め方</summary>
+    <div class="rec-body">
+      <div class="howto-grid">
+        <div class="howto-col">
+          <div class="howto-h"><span class="num">A</span>使い方（この画面でできること）</div>
+          <ul>
+            <li><b>タスク</b>：お互いの「やること」を一覧で共有します。終わったらチェック。文字や数字はクリックでその場編集できます。</li>
+            <li><b>目指すべき目標</b>：追う数値を登録します。<b>KPI（目標値）は、コンサル先（御社）が設定・入力してください</b>。現在値を入れると達成度が自動で計算されます。目標は何個でも追加できます。</li>
+            <li><b>相互メモ</b>：今の作業・進捗・困っている点をリアルタイムで共有します。</li>
+            <li><b>成果物ログ</b>：弊社（株式会社Merone）からの提出物を記録します。</li>
+            <li><b>議題ログ</b>：打ち合わせで決めたこと・話したことを残します。</li>
+          </ul>
+        </div>
+        <div class="howto-col">
+          <div class="howto-h"><span class="num">B</span>進め方（毎回の流れ）</div>
+          <ol>
+            <li>打ち合わせ後、議事録が<b>自動で仕分け</b>され、タスク・議題に入ります。</li>
+            <li>お互いのタスクを確認し、進めたら<b>チェック</b>を付けます。</li>
+            <li>目標の<b>現在値を随時更新</b>して、達成度を一緒に追います（目標値はコンサル先が入力）。</li>
+            <li>作業や進捗、詰まっている点は<b>相互メモ</b>に書いて共有します。</li>
+          </ol>
+        </div>
+        <div class="howto-note">KPI・目標値の設定は、必ず<b>コンサル先（御社）</b>にてご入力をお願いします。弊社（Merone）は伴走・実行を担当します。</div>
+      </div>
+    </div>
+  </details>
 
   <!-- ===== 1. タスク｜やるべきこと（議事録貼り付けで自動仕分け） ===== -->
   <div class="section">
@@ -461,8 +502,8 @@ details.rec .rec-body{padding:0 18px 18px}
   <div class="section goal-section">
     <h2>目指すべき目標 <span class="tag">今追う数値（目標と現在値）</span>
       <button class="mini-add" id="dirAddBtn" onclick="toggleDirForm()" style="margin-left:auto">＋ 目標を追加</button></h2>
-    <div class="desc">お互いで話し合って決めた目標を入力します（成約率・キャンセル率・件数など、いくつでも）。</div>
-    <div class="kpi-edit-hint">数字（現在値・目標値）はカード上の<b>点線の数字をクリックして直接入力・変更</b>できます。達成度は自動で計算されます。くみこ・クライアントのどちらも編集できます。</div>
+    <div class="desc">目標をご入力ください。成約率・キャンセル率・件数など、<b>いくつでも追加できます</b>（「＋ 目標を追加」から3つ目以降も登録可能）。</div>
+    <div class="kpi-edit-hint">数字（現在値・目標値）はカード上の<b>点線の数字をクリックして直接入力・変更</b>できます。達成度は自動で計算されます。KPIの目標値は<b>コンサル先（御社）が設定・入力</b>してください。</div>
     <div class="subform" id="dirForm">
       <input id="dirTitle" placeholder="ねらい・見出し（例：初回面談からの成約率を引き上げる）">
       <div class="form-row">
@@ -484,7 +525,7 @@ details.rec .rec-body{padding:0 18px 18px}
       </div>
     </div>
     <div class="kpi-grid" id="dirList"></div>
-    <div class="empty-note" id="dirEmpty">まだ目標がありません。「＋ 目標を追加」から、話し合って決めた指標を入力してください。</div>
+    <div class="empty-note" id="dirEmpty">目標をご入力ください。コンサル先（御社）で話し合って決めた指標を「＋ 目標を追加」からご登録ください（何個でも追加できます）。</div>
   </div>
 
   <!-- ===== 3. 相互メモ欄（今の作業・進捗） ===== -->
@@ -963,7 +1004,7 @@ function renderDirectives(){
     main+='<div class="kpi-label">'+ed('metric_label',esc(d.metric_label||''),'指標名を入力','ed')+(down?'<span class="dir">▼低いほど良い</span>':'')+'</div>';
     main+='<div class="kpi-nums">'+
       ed('current_value',(p.cur!==null?esc(d.current_value):''),'現在値','cur ed')+'<span class="u">'+uTxt+'</span>'+
-      '<span class="tgt">/ 目標 <b class="ed" contenteditable="'+ce+'" data-id="'+d.id+'" data-f="target_value" data-ph="目標" onblur="saveKpiField(this)" onkeydown="taskEditKey(event)">'+(p.tgt!==null?esc(d.target_value):'')+'</b>'+uTxt+'</span></div>';
+      '<span class="tgt">/ 目標 <b class="ed" contenteditable="'+ce+'" data-id="'+d.id+'" data-f="target_value" data-ph="目標をご入力" onblur="saveKpiField(this)" onkeydown="taskEditKey(event)">'+(p.tgt!==null?esc(d.target_value):'')+'</b>'+uTxt+'</span></div>';
     if(p.hasProg){
       const diff = down ? (p.cur - p.tgt) : (p.tgt - p.cur);
       const remainHtml = p.done ? '<div class="kpi-remain reached">目標達成しています</div>'
@@ -1531,7 +1572,7 @@ function switchBoard(b){
 // ============================================================
 
 function resetDemo(){ localStorage.removeItem('nurture_demo_lili'); location.reload(); }
-function makeSB(){ const SEED={"nurture_meta":[{"board_id":"lili","title":"LiLi ナーチャリング進行ボード","client_label":"LiLi"}],"nurture_directives":[{"id":"d1","board_id":"lili","title":"施策からの成約率を引き上げる","metric_label":"成約率","target_value":"20","current_value":"14","unit":"%","goal_dir":"up","status":"active","author":"kumiko","sort_order":1},{"id":"d2","board_id":"lili","title":"リード獲得数を伸ばす","metric_label":"月間リード数","target_value":"300","current_value":"210","unit":"件","goal_dir":"up","status":"active","author":"kumiko","sort_order":2}],"nurture_exec_notes":[{"id":"n1","board_id":"lili","body":"初回の設計を丁寧に。優先順位をすり合わせながら進めましょう。","kind":"request","author":"kumiko","created_at":"2026-07-19T01:00:00Z"},{"id":"n2","board_id":"lili","body":"よろしくお願いします。数字は都度共有いただけると助かります。","kind":"note","author":"kumiko","created_at":"2026-07-18T02:00:00Z"}],"nurture_tasks":[{"id":"t1","board_id":"lili","title":"現状のファネルと数値をヒアリング","owner":"kumiko","status":"doing","memo":"","sort_order":1},{"id":"t2","board_id":"lili","title":"募集LP・配信文の改善案を作成","owner":"kumiko","status":"todo","memo":"","sort_order":2},{"id":"t3","board_id":"lili","title":"現状のKPIと素材を共有","owner":"client","status":"todo","memo":"","sort_order":3},{"id":"t4","board_id":"lili","title":"次回ミーティングの日程調整","owner":"client","status":"done","memo":"","sort_order":4}],"nurture_stuck":[{"board_id":"lili","owner":"kumiko","content":"ヒアリング内容をもとに設計を検討中"},{"board_id":"lili","owner":"client","content":"数値データを集約中"}],"nurture_topics":[{"id":"p1","board_id":"lili","content":"初回はファネルの現状把握と優先課題の特定から着手で合意","author":"kumiko","created_at":"2026-07-18T12:00:00Z"}],"nurture_deliverables":[{"id":"v1","board_id":"lili","title":"現状分析メモ 初稿","category":"資料","url":"https://example.com","summary":"ファネルとボトルネックの整理","delivered_on":"2026-07-18"}]}; const KEY='nurture_demo_lili';
+function makeSB(){ const SEED={"nurture_meta":[{"board_id":"lili","title":"Li-Li ナーチャリング進行ボード","client_label":"Li-Li"}],"nurture_directives":[{"id":"d1","board_id":"lili","title":"施策からの成約率を引き上げる","metric_label":"成約率","target_value":"20","current_value":"14","unit":"%","goal_dir":"up","status":"active","author":"kumiko","sort_order":1},{"id":"d2","board_id":"lili","title":"リード獲得数を伸ばす","metric_label":"月間リード数","target_value":"300","current_value":"210","unit":"件","goal_dir":"up","status":"active","author":"kumiko","sort_order":2}],"nurture_exec_notes":[{"id":"n1","board_id":"lili","body":"初回の設計を丁寧に。優先順位をすり合わせながら進めましょう。","kind":"request","author":"kumiko","created_at":"2026-07-19T01:00:00Z"},{"id":"n2","board_id":"lili","body":"よろしくお願いします。数字は都度共有いただけると助かります。","kind":"note","author":"kumiko","created_at":"2026-07-18T02:00:00Z"}],"nurture_tasks":[{"id":"t1","board_id":"lili","title":"現状のファネルと数値をヒアリング","owner":"kumiko","status":"doing","memo":"","sort_order":1},{"id":"t2","board_id":"lili","title":"募集LP・配信文の改善案を作成","owner":"kumiko","status":"todo","memo":"","sort_order":2},{"id":"t3","board_id":"lili","title":"現状のKPIと素材を共有","owner":"client","status":"todo","memo":"","sort_order":3},{"id":"t4","board_id":"lili","title":"次回ミーティングの日程調整","owner":"client","status":"done","memo":"","sort_order":4}],"nurture_stuck":[{"board_id":"lili","owner":"kumiko","content":"ヒアリング内容をもとに設計を検討中"},{"board_id":"lili","owner":"client","content":"数値データを集約中"}],"nurture_topics":[{"id":"p1","board_id":"lili","content":"初回はファネルの現状把握と優先課題の特定から着手で合意","author":"kumiko","created_at":"2026-07-18T12:00:00Z"}],"nurture_deliverables":[{"id":"v1","board_id":"lili","title":"現状分析メモ 初稿","category":"資料","url":"https://example.com","summary":"ファネルとボトルネックの整理","delivered_on":"2026-07-18"}]}; const KEY='nurture_demo_lili';
   let DB; try{ DB=JSON.parse(localStorage.getItem(KEY)); }catch(e){}
   if(!DB || !DB.nurture_exec_notes || !DB.nurture_exec_notes[0] || !DB.nurture_exec_notes[0].kind){ DB=JSON.parse(JSON.stringify(SEED)); localStorage.setItem(KEY,JSON.stringify(DB)); }
   let idc=1; const persist=()=>localStorage.setItem(KEY,JSON.stringify(DB));
